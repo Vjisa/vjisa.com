@@ -39,13 +39,13 @@
   </header>
 
   <main>
-    <h1>Ahoj, já jsem Škrly 👋</h1>
+    <h1>Ahoj, já jsem👋</h1>
     <p>Toto je můj první web hostovaný na <b>GitHub Pages</b>.</p>
     <p>Můžu sem přidávat cokoliv – texty, obrázky, odkazy nebo celé projekty.</p>
   </main>
 
   <footer>
-    &copy; 2025 Škrly – vytvořeno na GitHub Pages
+    &copy; 2025 – vytvořeno na GitHub Pages
   </footer>
 </body>
 </html>
