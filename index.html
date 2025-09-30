@@ -3,251 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vjisa</title>
+  <title>Maturitní projekt – Virtuální PC</title>
   <style>
-    :root {
-      --bg: #f8f9fb;
-      --text: #333;
-      --card-bg: #fff;
-      --header-bg: linear-gradient(135deg, #0078ff, #00c6ff);
-      --footer-bg: #333;
-      --link: #0078ff;
-    }
-
-    [data-theme="dark"] {
-      --bg: #121212;
-      --text: #eaeaea;
-      --card-bg: #1e1e1e;
-      --header-bg: linear-gradient(135deg, #222, #444);
-      --footer-bg: #000;
-      --link: #4da6ff;
-    }
-
-    * {
+    body {
+      font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
+      background: #f5f5f5;
+      color: #333;
     }
-
-    body {
-      font-family: "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      transition: background 0.3s, color 0.3s;
-    }
-
     header {
-      background: var(--header-bg);
+      background: #222;
       color: white;
-      padding: 2rem;
+      padding: 1rem;
       text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
-
-    header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    header p {
-      font-size: 1.2rem;
-      opacity: 0.9;
-    }
-
     nav {
-      margin-top: 1rem;
+      background: #444;
+      padding: 0.5rem;
+      text-align: center;
     }
-
     nav a {
       color: white;
+      margin: 0 10px;
       text-decoration: none;
-      margin: 0 1rem;
-      font-weight: 500;
-      transition: opacity 0.2s;
     }
-
     nav a:hover {
-      opacity: 0.8;
+      text-decoration: underline;
     }
-
-    .theme-toggle {
-      margin-top: 1rem;
-      padding: 0.6rem 1rem;
-      background: white;
-      color: #333;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    [data-theme="dark"] .theme-toggle {
-      background: #444;
-      color: #fff;
-    }
-
-    main {
-      max-width: 1000px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-
     section {
-      margin-bottom: 3rem;
-    }
-
-    section h2 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      border-bottom: 2px solid var(--link);
-      display: inline-block;
-      padding-bottom: 0.3rem;
-    }
-
-    .card {
-      background: var(--card-bg);
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: white;
       border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s, background 0.3s, color 0.3s;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-
-    .card:hover {
-      transform: translateY(-5px);
+    h1, h2 {
+      color: #222;
     }
-
-    button {
-      background: var(--link);
-      color: white;
-      border: none;
-      padding: 0.8rem 1.2rem;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #005fcc;
-    }
-
     footer {
       text-align: center;
-      padding: 1.5rem;
-      background: var(--footer-bg);
-      color: #aaa;
-      font-size: 0.9rem;
+      padding: 1rem;
+      background: #222;
+      color: white;
       margin-top: 2rem;
-      transition: background 0.3s, color 0.3s;
     }
-
-    /* Responzivita */
-    @media (max-width: 768px) {
-      header h1 {
-        font-size: 2rem;
-      }
-      nav a {
-        margin: 0 0.5rem;
-      }
-      section h2 {
-        font-size: 1.5rem;
-      }
-      .card {
-        padding: 1rem;
-      }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      border: none;
+      background: #0078D7;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
     }
-
-    @media (max-width: 480px) {
-      header {
-        padding: 1.5rem 1rem;
-      }
-      header h1 {
-        font-size: 1.6rem;
-      }
-      nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      nav a {
-        margin: 0.3rem;
-        font-size: 0.9rem;
-      }
-      .theme-toggle {
-        font-size: 0.8rem;
-        padding: 0.5rem 0.8rem;
-      }
+    button:hover {
+      background: #005a9e;
     }
   </style>
 </head>
 <body>
+
   <header>
-    <h1>Vjisa Web</h1>
-    <p>Profesionální prezentace na GitHub Pages</p>
-    <nav>
-      <a href="#o-mne">O mně</a>
-      <a href="#projekty">Projekty</a>
-      <a href="#kontakt">Kontakt</a>
-    </nav>
-    <button class="theme-toggle" onclick="toggleTheme()">🌙 Přepnout režim</button>
+    <h1>Virtuální PC – Maturitní projekt</h1>
+    <p>Jednoduché řešení pro práci odkudkoli</p>
   </header>
 
-  <main>
-    <section id="o-mne">
-      <h2>O mně</h2>
-      <div class="card">
-        <p>Ahoj! Toto je ukázková profesionálně vypadající stránka hostovaná na GitHub Pages. 
-        Můžeš ji použít jako osobní portfolio, prezentaci projektů nebo firemní vizitku.</p>
-      </div>
-    </section>
+  <nav>
+    <a href="#home">Domů</a>
+    <a href="#features">Funkce</a>
+    <a href="#how">Jak to funguje</a>
+    <a href="#register">Registrace</a>
+    <a href="#contact">Kontakt</a>
+  </nav>
 
-    <section id="projekty">
-      <h2>Projekty</h2>
-      <div class="card">
-        <h3>Projekt 1</h3>
-        <p>Popis projektu, který tady můžeš ukázat. Stručně vysvětli, čím je zajímavý.</p>
-        <button>Zjistit více</button>
-      </div>
-      <div class="card">
-        <h3>Projekt 2</h3>
-        <p>Další projekt nebo práce, na kterou jsi hrdý.</p>
-        <button>Zjistit více</button>
-      </div>
-    </section>
+  <section id="home">
+    <h2>O projektu</h2>
+    <p>Tento maturitní projekt ukazuje, jak si může běžný uživatel jednoduše založit virtuální PC na serveru. Virtuální počítače umožňují pracovat z libovolného zařízení, bez nutnosti instalace programů přímo na svůj počítač.</p>
+  </section>
 
-    <section id="kontakt">
-      <h2>Kontakt</h2>
-      <div class="card">
-        <p>Můžeš mě kontaktovat na e-mailu:</p>
-        <p><strong>info@vjisa.com</strong></p>
-      </div>
-    </section>
-  </main>
+  <section id="features">
+    <h2>Funkce a výhody</h2>
+    <ul>
+      <li>Přístup odkudkoli – stačí internetové připojení</li>
+      <li>Bezpečné a izolované prostředí</li>
+      <li>Snadné vytvoření během několika minut</li>
+      <li>Možnost volby výkonu a konfigurace</li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>Jak to funguje</h2>
+    <ol>
+      <li>Zaregistrujte se do systému</li>
+      <li>Vyberte si parametry virtuálního PC (RAM, CPU, disk)</li>
+      <li>Klikněte na tlačítko <strong>Spustit</strong></li>
+      <li>Během chvilky máte vlastní virtuální počítač připravený k použití</li>
+    </ol>
+  </section>
+
+  <section id="register">
+    <h2>Registrace / Přihlášení</h2>
+    <p>Zatím pouze ukázka – v plné verzi zde bude možné založit si účet a vytvořit virtuální PC.</p>
+    <button>Registrovat</button>
+    <button>Přihlásit se</button>
+  </section>
+
+  <section id="contact">
+    <h2>Kontakt</h2>
+    <p>Autor projektu: <strong>Škrly</strong></p>
+    <p>Email: <a href="mailto:tvoje@email.cz">tvoje@email.cz</a></p>
+    <p>Tento web byl vytvořen jako součást maturitního projektu.</p>
+  </section>
 
   <footer>
-    <p>© 2025 Vjisa. Všechna práva vyhrazena.</p>
+    <p>&copy; 2025 Virtuální PC – Maturitní projekt</p>
   </footer>
 
-  <script>
-    function toggleTheme() {
-      const currentTheme = document.body.getAttribute("data-theme");
-      if (currentTheme === "dark") {
-        document.body.setAttribute("data-theme", "light");
-        localStorage.setItem("theme", "light");
-      } else {
-        document.body.setAttribute("data-theme", "dark");
-        localStorage.setItem("theme", "dark");
-      }
-    }
-
-    // Při načtení stránky použij uložené téma
-    window.onload = () => {
-      const savedTheme = localStorage.getItem("theme") || "light";
-      document.body.setAttribute("data-theme", savedTheme);
-    }
-  </script>
 </body>
 </html>
