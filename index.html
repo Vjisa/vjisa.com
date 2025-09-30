@@ -5,69 +5,171 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maturitní projekt – Virtuální PC</title>
   <style>
+    :root {
+      --primary: #0078d7;
+      --primary-dark: #005a9e;
+      --bg-light: #f5f7fa;
+      --bg-dark: #1e1e1e;
+      --text-light: #ffffff;
+      --text-dark: #222222;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background: #f5f5f5;
-      color: #333;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      transition: all 0.3s ease;
     }
+
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-light);
+    }
+
     header {
-      background: #222;
+      background: var(--primary);
       color: white;
-      padding: 1rem;
+      padding: 2rem 1rem;
       text-align: center;
     }
+
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      font-size: 1.2rem;
+    }
+
     nav {
-      background: #444;
-      padding: 0.5rem;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
+
+    body.dark nav {
+      background: #2b2b2b;
+    }
+
     nav a {
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    body.dark nav a {
+      color: var(--text-light);
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    section {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+
+    body.dark section {
+      background: #2b2b2b;
+    }
+
+    h2 {
+      color: var(--primary-dark);
+      margin-top: 0;
+    }
+
+    body.dark h2 {
+      color: var(--primary);
+    }
+
+    ul, ol {
+      line-height: 1.8;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 10px 5px 0 0;
+      background: var(--primary);
       color: white;
-      margin: 0 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: background 0.3s;
       text-decoration: none;
     }
-    nav a:hover {
-      text-decoration: underline;
+
+    .btn:hover {
+      background: var(--primary-dark);
     }
-    section {
-      max-width: 900px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
-      color: #222;
-    }
+
     footer {
       text-align: center;
-      padding: 1rem;
+      padding: 1.5rem;
       background: #222;
       color: white;
       margin-top: 2rem;
     }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      border: none;
-      background: #0078D7;
+
+    .theme-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--primary);
       color: white;
-      border-radius: 5px;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 50%;
       cursor: pointer;
+      font-size: 1.2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      transition: background 0.3s;
     }
-    button:hover {
-      background: #005a9e;
+
+    .theme-toggle:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Responzivita */
+    @media (max-width: 768px) {
+      nav {
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      section {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+      header h1 {
+        font-size: 1.8rem;
+      }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Virtuální PC – Maturitní projekt</h1>
-    <p>Jednoduché řešení pro práci odkudkoli</p>
+    <h1>Virtuální PC</h1>
+    <p>Maturitní projekt – přístup odkudkoli, kdykoli</p>
   </header>
 
   <nav>
@@ -80,34 +182,34 @@
 
   <section id="home">
     <h2>O projektu</h2>
-    <p>Tento maturitní projekt ukazuje, jak si může běžný uživatel jednoduše založit virtuální PC na serveru. Virtuální počítače umožňují pracovat z libovolného zařízení, bez nutnosti instalace programů přímo na svůj počítač.</p>
+    <p>Tento maturitní projekt ukazuje, jak může běžný uživatel snadno založit virtuální PC na serveru. Virtuální počítač poskytuje plnohodnotné prostředí pro práci či studium, bez nutnosti složité instalace softwaru na lokálním zařízení.</p>
   </section>
 
   <section id="features">
     <h2>Funkce a výhody</h2>
     <ul>
-      <li>Přístup odkudkoli – stačí internetové připojení</li>
-      <li>Bezpečné a izolované prostředí</li>
-      <li>Snadné vytvoření během několika minut</li>
-      <li>Možnost volby výkonu a konfigurace</li>
+      <li>💻 Přístup odkudkoli – stačí internet</li>
+      <li>🔒 Bezpečné a izolované prostředí</li>
+      <li>⚡ Rychlé vytvoření během minut</li>
+      <li>⚙️ Volitelná konfigurace výkonu</li>
     </ul>
   </section>
 
   <section id="how">
     <h2>Jak to funguje</h2>
     <ol>
-      <li>Zaregistrujte se do systému</li>
-      <li>Vyberte si parametry virtuálního PC (RAM, CPU, disk)</li>
-      <li>Klikněte na tlačítko <strong>Spustit</strong></li>
-      <li>Během chvilky máte vlastní virtuální počítač připravený k použití</li>
+      <li>➡️ Zaregistrujte se v systému</li>
+      <li>➡️ Vyberte parametry virtuálního PC (RAM, CPU, disk)</li>
+      <li>➡️ Klikněte na tlačítko <strong>Spustit</strong></li>
+      <li>➡️ Během okamžiku je vaše PC připravené k použití</li>
     </ol>
   </section>
 
   <section id="register">
     <h2>Registrace / Přihlášení</h2>
-    <p>Zatím pouze ukázka – v plné verzi zde bude možné založit si účet a vytvořit virtuální PC.</p>
-    <button>Registrovat</button>
-    <button>Přihlásit se</button>
+    <p>Tato sekce zatím slouží jako ukázka. V plné verzi zde bude možné založit účet a vytvořit vlastní virtuální PC.</p>
+    <a href="#" class="btn">Registrovat</a>
+    <a href="#" class="btn">Přihlásit se</a>
   </section>
 
   <section id="contact">
@@ -120,6 +222,20 @@
   <footer>
     <p>&copy; 2025 Virtuální PC – Maturitní projekt</p>
   </footer>
+
+  <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+      const btn = document.querySelector('.theme-toggle');
+      if (document.body.classList.contains('dark')) {
+        btn.textContent = "☀️";
+      } else {
+        btn.textContent = "🌙";
+      }
+    }
+  </script>
 
 </body>
 </html>
