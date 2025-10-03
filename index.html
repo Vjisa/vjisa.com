@@ -2,240 +2,114 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maturitní projekt – Virtuální PC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MojeVM – Správa virtuálních počítačů</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root {
-      --primary: #0078d7;
-      --primary-dark: #005a9e;
-      --bg-light: #f5f7fa;
-      --bg-dark: #1e1e1e;
-      --text-light: #ffffff;
-      --text-dark: #222222;
-    }
-
     body {
-      font-family: "Segoe UI", Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: var(--bg-light);
-      color: var(--text-dark);
-      transition: all 0.3s ease;
+      font-family: "Segoe UI", sans-serif;
     }
-
-    body.dark {
-      background: var(--bg-dark);
-      color: var(--text-light);
-    }
-
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 2rem 1rem;
-      text-align: center;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 2.5rem;
-    }
-
-    header p {
-      margin-top: 0.5rem;
-      font-size: 1.2rem;
-    }
-
-    nav {
-      display: flex;
-      justify-content: center;
-      gap: 1.5rem;
-      background: #fff;
+    .sidebar {
+      height: 100vh;
+      background: #1e1e2d;
+      color: #fff;
       padding: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-
-    body.dark nav {
-      background: #2b2b2b;
-    }
-
-    nav a {
-      color: var(--primary-dark);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
-    }
-
-    body.dark nav a {
-      color: var(--text-light);
-    }
-
-    nav a:hover {
-      color: var(--primary);
-    }
-
-    section {
-      max-width: 1100px;
-      margin: 2rem auto;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-    }
-
-    body.dark section {
-      background: #2b2b2b;
-    }
-
-    h2 {
-      color: var(--primary-dark);
-      margin-top: 0;
-    }
-
-    body.dark h2 {
-      color: var(--primary);
-    }
-
-    ul, ol {
-      line-height: 1.8;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      margin: 10px 5px 0 0;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: bold;
-      transition: background 0.3s;
-      text-decoration: none;
-    }
-
-    .btn:hover {
-      background: var(--primary-dark);
-    }
-
-    footer {
-      text-align: center;
-      padding: 1.5rem;
-      background: #222;
-      color: white;
-      margin-top: 2rem;
-    }
-
-    .theme-toggle {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 16px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 1.2rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      transition: background 0.3s;
+      width: 220px;
     }
-
-    .theme-toggle:hover {
-      background: var(--primary-dark);
+    .sidebar a {
+      color: #cfcfcf;
+      text-decoration: none;
+      display: block;
+      padding: 0.5rem 0;
+      border-radius: 5px;
     }
-
-    /* Responzivita */
-    @media (max-width: 768px) {
-      nav {
-        flex-wrap: wrap;
-        gap: 1rem;
-      }
-      section {
-        margin: 1rem;
-        padding: 1.5rem;
-      }
-      header h1 {
-        font-size: 1.8rem;
-      }
+    .sidebar a:hover {
+      background: #2e2e40;
+      color: #fff;
+    }
+    .content {
+      margin-left: 240px;
+      padding: 2rem;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #ddd;
+    }
+    .dark-mode .card {
+      background: #1e1e2d;
+      color: #fff;
+    }
+    .mode-toggle {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
     }
   </style>
 </head>
 <body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h3>☁️ MojeVM</h3>
+    <a href="#">Dashboard</a>
+    <a href="#">Moje VM</a>
+    <a href="#">Nastavení</a>
+    <a href="#">Odhlásit se</a>
+    <button class="btn btn-sm btn-outline-light mode-toggle" onclick="toggleMode()">🌙 / ☀️</button>
+  </div>
 
-  <header>
-    <h1>Virtuální PC</h1>
-    <p>Maturitní projekt – přístup odkudkoli, kdykoli</p>
-  </header>
-
-  <nav>
-    <a href="#home">Domů</a>
-    <a href="#features">Funkce</a>
-    <a href="#how">Jak to funguje</a>
-    <a href="#register">Registrace</a>
-    <a href="#contact">Kontakt</a>
-  </nav>
-
-  <section id="home">
-    <h2>O projektu</h2>
-    <p>Tento maturitní projekt ukazuje, jak může běžný uživatel snadno založit virtuální PC na serveru. Virtuální počítač poskytuje plnohodnotné prostředí pro práci či studium, bez nutnosti složité instalace softwaru na lokálním zařízení.</p>
-  </section>
-
-  <section id="features">
-    <h2>Funkce a výhody</h2>
-    <ul>
-      <li>💻 Přístup odkudkoli – stačí internet</li>
-      <li>🔒 Bezpečné a izolované prostředí</li>
-      <li>⚡ Rychlé vytvoření během minut</li>
-      <li>⚙️ Volitelná konfigurace výkonu</li>
-    </ul>
-  </section>
-
-  <section id="how">
-    <h2>Jak to funguje</h2>
-    <ol>
-      <li>➡️ Zaregistrujte se v systému</li>
-      <li>➡️ Vyberte parametry virtuálního PC (RAM, CPU, disk)</li>
-      <li>➡️ Klikněte na tlačítko <strong>Spustit</strong></li>
-      <li>➡️ Během okamžiku je vaše PC připravené k použití</li>
-    </ol>
-  </section>
-
-  <section id="register">
-    <h2>Registrace / Přihlášení</h2>
-    <p>Tato sekce zatím slouží jako ukázka. V plné verzi zde bude možné založit účet a vytvořit vlastní virtuální PC.</p>
-    <a href="#" class="btn">Registrovat</a>
-    <a href="#" class="btn">Přihlásit se</a>
-  </section>
-
-  <section id="contact">
-    <h2>Kontakt</h2>
-    <p>Autor projektu: <strong>Škrly</strong></p>
-    <p>Email: <a href="mailto:tvoje@email.cz">tvoje@email.cz</a></p>
-    <p>Tento web byl vytvořen jako součást maturitního projektu.</p>
-  </section>
-
-  <footer>
-    <p>&copy; 2025 Virtuální PC – Maturitní projekt</p>
-  </footer>
-
-  <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+  <!-- Obsah -->
+  <div class="content">
+    <h2>Moje virtuální počítače</h2>
+    <p>Zde spravujete své virtuální stroje.</p>
+    <div class="card p-3 shadow-sm">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Název</th>
+            <th>Stav</th>
+            <th>CPU</th>
+            <th>RAM</th>
+            <th>Disk</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ubuntu-Server</td>
+            <td><span class="badge bg-success">Zapnuto</span></td>
+            <td>2</td>
+            <td>4 GB</td>
+            <td>50 GB</td>
+            <td>
+              <button class="btn btn-sm btn-primary">Vypnout</button>
+              <button class="btn btn-sm btn-warning">Restart</button>
+              <button class="btn btn-sm btn-danger">Smazat</button>
+              <button class="btn btn-sm btn-secondary">Konzole</button>
+            </td>
+          </tr>
+          <tr>
+            <td>Windows10</td>
+            <td><span class="badge bg-danger">Vypnuto</span></td>
+            <td>4</td>
+            <td>8 GB</td>
+            <td>100 GB</td>
+            <td>
+              <button class="btn btn-sm btn-success">Zapnout</button>
+              <button class="btn btn-sm btn-danger">Smazat</button>
+              <button class="btn btn-sm btn-secondary">Konzole</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-success mt-2">+ Vytvořit novou VM</button>
+    </div>
+  </div>
 
   <script>
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      const btn = document.querySelector('.theme-toggle');
-      if (document.body.classList.contains('dark')) {
-        btn.textContent = "☀️";
-      } else {
-        btn.textContent = "🌙";
-      }
+    function toggleMode() {
+      document.body.classList.toggle("dark-mode");
     }
   </script>
-
 </body>
 </html>
