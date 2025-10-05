@@ -73,38 +73,7 @@
     <button class="btn-back" onclick="window.location.href='home.html'">Zpět na domů</button>
   </div>
 
-  <script>
-    const username = localStorage.getItem("username");
-    if (!username) {
-      window.location.href = "index.html";
-    } else {
-      document.getElementById("userInfo").textContent = `Přihlášen jako: ${username}`;
-    }
-
-    const themeToggle = document.getElementById("themeToggle");
-    const resetBtn = document.getElementById("resetBtn");
-
-    // načti z localStorage
-    themeToggle.checked = localStorage.getItem("theme") === "dark";
-
-    themeToggle.addEventListener("change", () => {
-      if (themeToggle.checked) {
-        document.body.style.background = "#1a1a1a";
-        document.body.style.color = "#f5f5f5";
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.body.style.background = "linear-gradient(135deg, #4e73df, #1cc88a)";
-        document.body.style.color = "#333";
-        localStorage.setItem("theme", "light");
-      }
-    });
-
-    resetBtn.addEventListener("click", () => {
-      localStorage.clear();
-      alert("Nastavení bylo obnoveno.");
-      window.location.href = "index.html";
-    });
-  </script>
+  
 
 </body>
 </html>
