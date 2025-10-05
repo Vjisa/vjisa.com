@@ -110,13 +110,14 @@
         <a href="#">Moje VM</a>
       </div>
       <div>
-        <a href="#" id="logout">Odhlásit se</a>
+        <a href="index.html" id="logout">Odhlásit se</a>
       </div>
     </div>
 
     <!-- Obsah -->
     <div class="content">
-     <img src="docs/gear.png" alt="Nastavení" class="settings-icon" onclick="window.location.href='settings.html'">
+      <!-- Nastavení -->
+      <img src="docs/gear.png" alt="Nastavení" class="settings-icon" onclick="window.location.href='settings.html'">
 
       <h2>Moje virtuální počítače</h2>
       <p>Zde můžete spravovat své virtuální stroje.</p>
@@ -167,11 +168,8 @@
   </div>
 
   <script>
-    // Odhlášení
-    document.getElementById("settings-icon").addEventListener("click", function() {
-    window.location.href = "index.html";
-});
-
+    // Odhlášení funguje přes HTML odkaz
+    // Žádný redirect JS na index.html už není
   </script>
 </body>
 </html>
