@@ -8,62 +8,121 @@
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #4e73df, #1cc88a);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
     }
+
+    /* Sidebar */
     .sidebar {
-      height: 100vh;
-      background: #1e1e2d;
-      color: #fff;
-      padding: 1rem;
-      position: fixed;
-      width: 220px;
+      width: 240px;
+      background: #fff;
+      border-radius: 0 12px 12px 0;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
+
+    .sidebar h3 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
     .sidebar a {
-      color: #cfcfcf;
+      color: #4e73df;
       text-decoration: none;
       display: block;
-      padding: 0.5rem 0;
-      border-radius: 5px;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+      font-weight: 500;
     }
+
     .sidebar a:hover {
-      background: #2e2e40;
-      color: #fff;
+      background-color: #f1f3ff;
+      color: #224abe;
     }
+
+    .sidebar button.mode-toggle {
+      width: 100%;
+      margin-top: 2rem;
+      border-radius: 8px;
+    }
+
+    /* Obsah */
     .content {
-      margin-left: 240px;
+      flex-grow: 1;
       padding: 2rem;
+      color: #333;
     }
+
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      background-color: #fff;
+    }
+
+    h2 {
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
     .dark-mode {
-      background-color: #121212;
+      background: linear-gradient(135deg, #181818, #2e2e2e);
       color: #ddd;
     }
-    .dark-mode .card {
+
+    .dark-mode .sidebar {
       background: #1e1e2d;
+      color: #ddd;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+
+    .dark-mode .sidebar a {
+      color: #cfcfcf;
+    }
+
+    .dark-mode .sidebar a:hover {
+      background-color: #2e2e40;
       color: #fff;
     }
-    .mode-toggle {
-      position: absolute;
-      bottom: 1rem;
-      left: 1rem;
+
+    .dark-mode .card {
+      background-color: #1e1e2d;
+      color: #fff;
+    }
+
+    .logout-btn {
+      margin-top: 1rem;
+      border-radius: 8px;
+      width: 100%;
     }
   </style>
 </head>
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <h3>☁️ MojeVM</h3>
-    <a href="#">Dashboard</a>
-    <a href="#">Moje VM</a>
-    <a href="#">Nastavení</a>
-    <a href="#">Odhlásit se</a>
-    <button class="btn btn-sm btn-outline-light mode-toggle" onclick="toggleMode()">🌙 / ☀️</button>
+    <div>
+      <h3>☁️ MojeVM</h3>
+      <a href="#">Dashboard</a>
+      <a href="#">Moje VM</a>
+      <a href="#">Nastavení</a>
+      <button class="btn btn-outline-primary mode-toggle" onclick="toggleMode()">🌙 / ☀️ Režim</button>
+      <button class="btn btn-danger logout-btn" onclick="logout()">Odhlásit se</button>
+    </div>
   </div>
 
   <!-- Obsah -->
   <div class="content">
-    <h2>Moje virtuální počítače</h2>
-    <p>Zde spravujete své virtuální stroje.</p>
-    <div class="card p-3 shadow-sm">
-      <table class="table table-hover">
+    <h2 class="mb-4">Moje virtuální počítače</h2>
+
+    <div class="card p-4">
+      <table class="table table-hover align-middle">
         <thead>
           <tr>
             <th>Název</th>
@@ -102,13 +161,17 @@
           </tr>
         </tbody>
       </table>
-      <button class="btn btn-success mt-2">+ Vytvořit novou VM</button>
+      <button class="btn btn-success mt-3">+ Vytvořit novou VM</button>
     </div>
   </div>
 
   <script>
     function toggleMode() {
       document.body.classList.toggle("dark-mode");
+    }
+
+    function logout() {
+      window.location.href = "index.html";
     }
   </script>
 </body>
