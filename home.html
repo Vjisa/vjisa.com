@@ -98,32 +98,6 @@
     .btn {
       border-radius: 6px;
     }
-
-    /* Dark mode */
-    .dark-mode {
-      background-color: #121212 !important;
-      color: #ddd;
-    }
-
-    .dark-mode .card {
-      background: #1e1e2d;
-      color: #fff;
-    }
-
-    .mode-toggle {
-      background: transparent;
-      border: 1px solid #aaa;
-      color: #fff;
-      padding: 0.3rem 0.6rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .mode-toggle:hover {
-      background: #2e2e40;
-    }
-
   </style>
 </head>
 <body>
@@ -137,7 +111,6 @@
       </div>
       <div>
         <a href="#" id="logout">Odhlásit se</a>
-        <button class="mode-toggle" onclick="toggleMode()">🌙 / ☀️</button>
       </div>
     </div>
 
@@ -193,10 +166,6 @@
   </div>
 
   <script>
-    function toggleMode() {
-      document.body.classList.toggle("dark-mode");
-    }
-
     // Odhlášení
     document.getElementById("logout").addEventListener("click", function(e) {
       e.preventDefault();
