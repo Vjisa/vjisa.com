@@ -2,78 +2,65 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nastavení – MojeVM</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      height: 100vh;
-      background: linear-gradient(135deg, #4e73df, #1cc88a);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #333;
-    }
-    .settings-box {
-      background: #fff;
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .settings-box h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      color: #333;
-    }
-    .switch {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 1rem 0;
-    }
-    .btn-back {
-      margin-top: 1.5rem;
-      background-color: #4e73df;
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      width: 100%;
-      padding: 0.6rem;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nastavení</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="settings-box">
+  <div class="settings-container">
     <h2>Nastavení</h2>
     <p id="userInfo"></p>
 
-    <div class="switch">
-      <label for="themeToggle">Tmavý režim:</label>
+    <div class="setting-item">
+      <label for="themeToggle">Tmavý režim</label>
       <input type="checkbox" id="themeToggle">
     </div>
 
-    <div class="switch">
-      <label for="langSelect">Jazyk:</label>
-      <select id="langSelect" class="form-select" style="width:auto;">
-        <option value="cs">Čeština</option>
-        <option value="en">English</option>
-      </select>
+    <div class="buttons">
+      <button id="saveBtn">💾 Uložit změny</button>
+      <button id="resetBtn">🔁 Obnovit výchozí</button>
     </div>
-
-    <div class="switch">
-      <label for="autoLogout">Automatické odhlášení:</label>
-      <input type="checkbox" id="autoLogout">
-    </div>
-
-    <button class="btn btn-danger w-100 mt-3" id="resetBtn">Obnovit výchozí nastavení</button>
-    <button class="btn-back" onclick="window.location.href='home.html'">Zpět na domů</button>
   </div>
 
-  
+  <script>
+    const username = localStorage.getItem("username");
+    if (!username) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("userInfo").textContent = `Přihlášen jako: ${username}`;
+    }
+
+    const themeToggle = document.getElementById("themeToggle");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    // Načti uložený motiv
+    const theme = localStorage.getItem("theme");
+    if (theme === "dark") {
+      document.body.classList.add("dark");
+      themeToggle.checked = true;
+    }
+
+    // Uložení změn
+    saveBtn.addEventListener("click", () => {
+      if (themeToggle.checked) {
+        localStorage.setItem("theme", "dark");
+        document.body.classList.add("dark");
+      } else {
+        localStorage.setItem("theme", "light");
+        document.body.classList.remove("dark");
+      }
+      alert("Změny byly uloženy.");
+    });
+
+    // Reset nastavení
+    resetBtn.addEventListener("click", () => {
+      localStorage.clear();
+      alert("Nastavení bylo obnoveno.");
+      window.location.href = "index.html";
+    });
+  </script>
 
 </body>
 </html>
