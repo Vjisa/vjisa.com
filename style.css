@@ -1,0 +1,449 @@
+/* ==============================
+   Základní nastavení a motiv
+   ============================== */
+
+:root {
+  --color-bg: #0f172a;
+  --color-bg-elevated: #111827;
+  --color-bg-soft: #1f2937;
+  --color-border: rgba(148, 163, 184, 0.4);
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-primary: #4f46e5;
+  --color-primary-soft: rgba(79, 70, 229, 0.16);
+  --color-primary-strong: #4338ca;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.45);
+}
+
+.theme-light {
+  --color-bg: #f3f4f6;
+  --color-bg-elevated: #ffffff;
+  --color-bg-soft: #e5e7eb;
+  --color-border: rgba(148, 163, 184, 0.4);
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-primary: #4f46e5;
+  --color-primary-soft: rgba(79, 70, 229, 0.1);
+  --color-primary-strong: #4338ca;
+  --color-danger: #b91c1c;
+  --color-success: #16a34a;
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.15);
+}
+
+.theme-dark {
+  --color-bg: #020617;
+  --color-bg-elevated: #020617;
+  --color-bg-soft: #020617;
+  --color-border: rgba(148, 163, 184, 0.35);
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+}
+
+/* Reset / základ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-text);
+  background: radial-gradient(circle at top, #1e293b 0, var(--color-bg) 45%, #020617 100%);
+}
+
+/* ==============================
+   Auth stránka (login)
+   ============================== */
+
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-wrapper {
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem;
+}
+
+.auth-card {
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 36%),
+              radial-gradient(circle at top right, rgba(79, 70, 229, 0.35), transparent 46%),
+              var(--color-bg-elevated);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 2.25rem 2rem 1.5rem;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  font-size: 0.95rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #f9fafb;
+  margin-bottom: 1.1rem;
+}
+
+.auth-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.auth-subtitle {
+  margin: 0 0 1.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.auth-footer {
+  margin: 1.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Bootstrap overrides */
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0, var(--color-primary-strong) 100%);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-strong) 0, var(--color-primary) 100%);
+}
+
+.btn-light.btn-icon {
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  font-size: 1.1rem;
+  padding-inline: 0.75rem;
+}
+
+/* ==============================
+   Shell layout (sidebar + main)
+   ============================== */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+
+.sidebar {
+  width: 260px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 45%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 55%),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.4), transparent 55%),
+    #020617;
+  color: #e5e7eb;
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.55);
+  font-size: 1.35rem;
+}
+
+.brand-name {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.brand-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(209, 213, 219, 0.85);
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.75rem;
+  color: rgba(209, 213, 219, 0.92);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.sidebar-link .icon {
+  width: 1.4rem;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.sidebar-link:hover {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.sidebar-link.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(59, 130, 246, 0.28));
+  color: #f9fafb;
+}
+
+.sidebar-footer {
+  margin-top: 1.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  padding-top: 1rem;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: rgba(209, 213, 219, 0.8);
+}
+
+/* Main content */
+
+.main-content {
+  flex: 1;
+  padding: 1.75rem 2rem;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.22), transparent 50%),
+    radial-gradient(circle at bottom left, rgba(56, 189, 248, 0.12), transparent 55%),
+    var(--color-bg);
+}
+
+/* Page header */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Cards & stat grid */
+
+.card {
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  background-color: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.45);
+}
+
+.theme-light .card {
+  background-color: var(--color-bg-elevated);
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.1);
+}
+
+.card-title {
+  font-size: 1.05rem;
+  margin-bottom: 0.15rem;
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.stat-card {
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.9rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.theme-light .stat-card {
+  background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+/* VM tabulka */
+
+.vm-table thead {
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.9));
+}
+
+.theme-light .vm-table thead {
+  background: linear-gradient(to right, #e5e7eb, #e0e7ff);
+}
+
+.vm-table thead th {
+  border-bottom-width: 0;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.vm-table tbody tr + tr {
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.vm-name {
+  font-weight: 500;
+}
+
+.vm-id {
+  font-size: 0.75rem;
+}
+
+/* Nastavení stránka */
+
+.settings-card {
+  margin-bottom: 1rem;
+}
+
+.theme-preview {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.theme-preview-light,
+.theme-preview-dark {
+  flex: 1;
+  height: 34px;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+}
+
+.theme-preview-light {
+  background: linear-gradient(135deg, #ffffff, #e5e7eb);
+}
+
+.theme-preview-dark {
+  background: radial-gradient(circle at top, #1e293b 0, #020617 48%, #020617 100%);
+}
+
+/* Responsivita */
+
+@media (max-width: 992px) {
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    padding: 1.25rem 1.2rem 1.75rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .auth-card {
+    padding-inline: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .page-actions .btn {
+    flex: 1 1 auto;
+  }
+}

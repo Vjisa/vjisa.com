@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>MojeVM – Přehled virtuálních strojů</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">☁️</div>
+        <div class="sidebar-title">
+          <span class="brand-name">MojeVM</span>
+          <span class="brand-subtitle">Portál virtuálních strojů</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="home.html" class="sidebar-link active">
+          <span class="icon">🏠</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="home.html#vm-list" class="sidebar-link">
+          <span class="icon">🖥️</span>
+          <span>Moje VM</span>
+        </a>
+        <a href="settings.html" class="sidebar-link">
+          <span class="icon">⚙️</span>
+          <span>Nastavení</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar">👤</div>
+          <div>
+            <div class="user-name" id="sidebarUser">Uživatel</div>
+            <div class="user-role">Student / Admin</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn btn-sm btn-outline-light w-100">Odhlásit se</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Přehled virtuálních strojů</h1>
+          <p class="page-subtitle">Spravujte své virtuální stroje, sledujte vytížení a provádějte základní akce.</p>
+        </div>
+        <div class="page-actions">
+          <button id="createVmBtn" class="btn btn-primary">
+            + Vytvořit nový VM
+          </button>
+          <a href="settings.html" class="btn btn-light btn-icon" title="Nastavení">
+            ⚙️
+          </a>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Souhrnné statistiky">
+        <div class="stat-card">
+          <div class="stat-label">Celkem VM</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Spuštěno</div>
+          <div class="stat-value" id="statRunning">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Vypnuto</div>
+          <div class="stat-value" id="statStopped">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Využití CPU (demo)</div>
+          <div class="stat-value" id="statCpu">–</div>
+        </div>
+      </section>
+
+      <section class="card mt-4" id="vm-list">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="card-title">Moje virtuální stroje</h2>
+            <p class="card-subtitle text-muted mb-0">
+              Seznam je v této verzi pouze demonstrační – v budoucnu bude napojen na API Proxmoxu.
+            </p>
+          </div>
+          <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">
+            ↻ Obnovit
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0 vm-table">
+              <thead>
+                <tr>
+                  <th>Název</th>
+                  <th>Stav</th>
+                  <th>CPU</th>
+                  <th>RAM</th>
+                  <th>Disk</th>
+                  <th class="text-end">Akce</th>
+                </tr>
+              </thead>
+              <tbody id="vmTableBody">
+                <!-- generováno JavaScriptem -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modal pro vytvoření VM (čistě frontend-demo) -->
+      <div class="modal fade" id="createVmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Vytvořit nový virtuální stroj</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+            </div>
+            <div class="modal-body">
+              <form id="createVmForm">
+                <div class="mb-3">
+                  <label for="vmName" class="form-label">Název VM</label>
+                  <input type="text" id="vmName" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label for="vmTemplate" class="form-label">Šablona</label>
+                  <select id="vmTemplate" class="form-select" required>
+                    <option value="ubuntu">Ubuntu Server 22.04</option>
+                    <option value="debian">Debian 12</option>
+                    <option value="win11">Windows 11 Education</option>
+                  </select>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label for="vmCpu" class="form-label">CPU (vCPU)</label>
+                    <input type="number" id="vmCpu" class="form-control" min="1" max="8" value="2" required />
+                  </div>
+                  <div class="col-md-4">
+                    <label for="vmRam" class="form-label">RAM (GB)</label>
+                    <input type="number" id="vmRam" class="form-control" min="1" max="32" value="4" required />
+                  </div>
+                  <div class="col-md-4">
+                    <label for="vmDisk" class="form-label">Disk (GB)</label>
+                    <input type="number" id="vmDisk" class="form-control" min="20" max="500" value="64" required />
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Zrušit</button>
+              <button type="button" id="createVmSaveBtn" class="btn btn-primary">Vytvořit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function() {
+      const username = localStorage.getItem("mvUsername");
+      if (!username) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const theme = localStorage.getItem("mvTheme") || "light";
+      document.body.classList.add("theme-" + theme);
+
+      const sidebarUser = document.getElementById("sidebarUser");
+      sidebarUser.textContent = username;
+
+      const logoutBtn = document.getElementById("logoutBtn");
+      logoutBtn.addEventListener("click", function() {
+        localStorage.removeItem("mvUsername");
+        window.location.href = "index.html";
+      });
+
+      // Demo data VM
+      let vmData = [
+        { id: 1, name: "Ubuntu-Server", status: "running", cpu: 2, ram: 4, disk: 64 },
+        { id: 2, name: "Debian-Server", status: "stopped", cpu: 1, ram: 2, disk: 32 },
+        { id: 3, name: "Windows11", status: "running", cpu: 4, ram: 8, disk: 128 }
+      ];
+
+      const vmTableBody = document.getElementById("vmTableBody");
+      const statTotal = document.getElementById("statTotal");
+      const statRunning = document.getElementById("statRunning");
+      const statStopped = document.getElementById("statStopped");
+      const statCpu = document.getElementById("statCpu");
+
+      function renderStats() {
+        const total = vmData.length;
+        const running = vmData.filter(vm => vm.status === "running").length;
+        const stopped = total - running;
+        const cpuUsed = vmData
+          .filter(vm => vm.status === "running")
+          .reduce((sum, vm) => sum + vm.cpu, 0);
+
+        statTotal.textContent = total;
+        statRunning.textContent = running;
+        statStopped.textContent = stopped;
+        statCpu.textContent = cpuUsed + " vCPU";
+      }
+
+      function renderTable() {
+        vmTableBody.innerHTML = "";
+        vmData.forEach(vm => {
+          const tr = document.createElement("tr");
+
+          const statusBadge = vm.status === "running"
+            ? '<span class="badge bg-success">Zapnuto</span>'
+            : '<span class="badge bg-secondary">Vypnuto</span>';
+
+          tr.innerHTML = `
+            <td>
+              <div class="vm-name">${vm.name}</div>
+              <div class="vm-id text-muted">ID: ${vm.id}</div>
+            </td>
+            <td>${statusBadge}</td>
+            <td>${vm.cpu} vCPU</td>
+            <td>${vm.ram} GB</td>
+            <td>${vm.disk} GB</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary me-1" data-action="toggle" data-id="${vm.id}">
+                ${vm.status === "running" ? "Vypnout" : "Zapnout"}
+              </button>
+              <button class="btn btn-sm btn-outline-secondary me-1" data-action="restart" data-id="${vm.id}">
+                Restart
+              </button>
+              <button class="btn btn-sm btn-outline-danger me-1" data-action="delete" data-id="${vm.id}">
+                Smazat
+              </button>
+              <button class="btn btn-sm btn-outline-dark" data-action="console" data-id="${vm.id}">
+                Konzole
+              </button>
+            </td>
+          `;
+
+          vmTableBody.appendChild(tr);
+        });
+
+        renderStats();
+      }
+
+      vmTableBody.addEventListener("click", function(e) {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+
+        const id = Number(btn.getAttribute("data-id"));
+        const action = btn.getAttribute("data-action");
+        const vm = vmData.find(v => v.id === id);
+        if (!vm) return;
+
+        if (action === "toggle") {
+          vm.status = vm.status === "running" ? "stopped" : "running";
+          renderTable();
+        } else if (action === "restart") {
+          if (vm.status !== "running") {
+            alert("VM musí být spuštěný, aby šel restartovat.");
+          } else {
+            alert("Simulovaný restart VM: " + vm.name);
+          }
+        } else if (action === "delete") {
+          if (confirm("Opravdu chcete smazat VM '" + vm.name + "'?")) {
+            vmData = vmData.filter(v => v.id !== id);
+            renderTable();
+          }
+        } else if (action === "console") {
+          alert("Zde bude otevřena konzole VM (napojení na VNC/SPICE/HTML5 konzoli).");
+        }
+      });
+
+      // Demo "obnovit"
+      document.getElementById("refreshBtn").addEventListener("click", function() {
+        renderTable();
+      });
+
+      // Modal – vytvoření VM (frontend demo)
+      const createVmBtn = document.getElementById("createVmBtn");
+      const createVmSaveBtn = document.getElementById("createVmSaveBtn");
+      const createVmForm = document.getElementById("createVmForm");
+      const createVmModalEl = document.getElementById("createVmModal");
+      const createVmModal = new bootstrap.Modal(createVmModalEl);
+
+      createVmBtn.addEventListener("click", function() {
+        createVmForm.reset();
+        document.getElementById("vmCpu").value = 2;
+        document.getElementById("vmRam").value = 4;
+        document.getElementById("vmDisk").value = 64;
+        createVmModal.show();
+      });
+
+      createVmSaveBtn.addEventListener("click", function() {
+        if (!createVmForm.reportValidity()) {
+          return;
+        }
+
+        const name = document.getElementById("vmName").value.trim();
+        const cpu = Number(document.getElementById("vmCpu").value);
+        const ram = Number(document.getElementById("vmRam").value);
+        const disk = Number(document.getElementById("vmDisk").value);
+
+        const newId = vmData.length ? Math.max(...vmData.map(v => v.id)) + 1 : 1;
+        vmData.push({
+          id: newId,
+          name,
+          status: "stopped",
+          cpu,
+          ram,
+          disk
+        });
+
+        createVmModal.hide();
+        renderTable();
+      });
+
+      // Inicializace
+      renderTable();
+    })();
+  </script>
+</body>
+</html>
