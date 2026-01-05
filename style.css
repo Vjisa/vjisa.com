@@ -447,3 +447,104 @@ body {
     flex: 1 1 auto;
   }
 }
+
+/* ============================= */
+/* 404 PAGE – ANIMACE */
+/* ============================= */
+
+/* ---- Animace čísel 404 (wave efekt) ---- */
+.error-code {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.error-digit {
+  display: inline-block;
+  animation: errorWave 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.error-digit:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.error-digit:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes errorWave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ---- Načítací tečky ---- */
+.loading-dots span {
+  display: inline-block;
+  animation: dotsBlink 1.4s infinite both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotsBlink {
+  0% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Jemné objevení obsahu ---- */
+.error-box {
+  animation: fadeIn404 0.8s ease-out both;
+}
+
+@keyframes fadeIn404 {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Hover efekt na tlačítka (jemný, nenápadný) ---- */
+.error-btn,
+.error-link {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.error-btn:hover,
+.error-link:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* ---- Přístupnost: vypnutí animací ---- */
+@media (prefers-reduced-motion: reduce) {
+  .error-digit,
+  .loading-dots span,
+  .error-box {
+    animation: none !important;
+  }
+}
