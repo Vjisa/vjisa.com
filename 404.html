@@ -1,77 +1,54 @@
 <!doctype html>
 <html lang="cs">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>404 – Stránka nenalezena</title>
 
-  <!-- Napojení na stejné styly jako zbytek webu -->
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- Malé bezpečné doplnění stylu jen pro 404 (když by tvůj style.css neměl tyto třídy) -->
-  <style>
-    .e404-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-    .e404-card { max-width: 760px; width: 100%; border-radius: 16px; padding: 28px; }
-    .e404-top { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 20px; }
-    .e404-code { font-size: 72px; line-height: 1; font-weight: 800; letter-spacing: 2px; }
-    .e404-title { font-size: 24px; margin: 0 0 8px; }
-    .e404-text { margin: 0 0 18px; opacity: 0.9; }
-    .e404-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    .e404-btn, .e404-link {
-      display: inline-block; padding: 10px 14px; border-radius: 12px; text-decoration: none;
-    }
-    .e404-btn { font-weight: 600; }
-    .e404-hint { margin-top: 18px; font-size: 14px; opacity: 0.8; }
-    .e404-nav { display: flex; gap: 12px; flex-wrap: wrap; }
-  </style>
+  <!-- Používá stejný styl jako zbytek webu -->
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <main class="e404-wrap">
-    <!-- Card vzhled nechávám hlavně na style.css; inline styl je jen "fallback" -->
-    <section class="e404-card">
-      <div class="e404-top">
-        <div>
-          <div class="e404-code" aria-label="Chyba 404">404</div>
-          <h1 class="e404-title">Stránka nenalezena</h1>
-          <p class="e404-text">
-            Odkaz je neplatný nebo byla stránka přesunuta. Zkus se vrátit na hlavní stránku.
-          </p>
 
-          <div class="e404-actions">
-            <a class="e404-btn" href="home.html">Zpět na Home</a>
-            <a class="e404-link" href="index.html">Přejít na úvod</a>
-            <a class="e404-link" href="settings.html">Nastavení</a>
-          </div>
+  <main class="error-page">
 
-          <p class="e404-hint">
-            Tip: Pokud jsi sem došel přes odkaz, zkontroluj překlep v adrese URL.
-          </p>
-        </div>
+    <section class="error-box">
 
-        <!-- Jednoduchá ilustrace (SVG) – bez obrázků, bez závislostí -->
-        <svg width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Ilustrace 404">
-          <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="currentColor" stop-opacity="0.25"></stop>
-              <stop offset="1" stop-color="currentColor" stop-opacity="0.08"></stop>
-            </linearGradient>
-          </defs>
-          <rect x="12" y="12" width="156" height="156" rx="20" fill="url(#g)"></rect>
-          <path d="M55 112c10-25 15-34 35-34s25 9 35 34" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round"/>
-          <circle cx="70" cy="70" r="8" fill="currentColor" fill-opacity="0.55"/>
-          <circle cx="110" cy="70" r="8" fill="currentColor" fill-opacity="0.55"/>
-          <path d="M45 140h90" stroke="currentColor" stroke-opacity="0.25" stroke-width="6" stroke-linecap="round"/>
-        </svg>
+      <!-- Animované číslo 404 -->
+      <h1 class="error-code">
+        <span class="error-digit">4</span>
+        <span class="error-digit">0</span>
+        <span class="error-digit">4</span>
+      </h1>
+
+      <h2 class="error-title">
+        Stránka nenalezena
+      </h2>
+
+      <p class="error-text">
+        Požadovaná stránka neexistuje, byla přesunuta nebo je adresa chybná.
+      </p>
+
+      <!-- „Loading / searching“ efekt -->
+      <p class="error-loading">
+        Hledám správnou cestu
+        <span class="loading-dots">
+          <span>.</span><span>.</span><span>.</span>
+        </span>
+      </p>
+
+      <!-- Akce -->
+      <div class="error-actions">
+        <a href="home.html" class="error-btn">Zpět na Home</a>
+        <a href="index.html" class="error-link">Úvodní stránka</a>
+        <a href="settings.html" class="error-link">Nastavení</a>
       </div>
 
-      <nav class="e404-nav" aria-label="Rychlá navigace">
-        <a href="home.html">Home</a>
-        <a href="index.html">Úvod</a>
-        <a href="settings.html">Nastavení</a>
-      </nav>
     </section>
+
   </main>
+
 </body>
 </html>
