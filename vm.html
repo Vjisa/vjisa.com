@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MojeVM – vytvoření VM</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; margin-top: 6px; }
+    button { margin-top: 14px; padding: 10px 14px; border-radius: 10px; border: 0; cursor:pointer; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow:auto; }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; }
+    .row > div { flex: 1 1 220px; }
+  </style>
+</head>
+<body>
+  <h1>Vytvoření VM</h1>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="name">Název VM</label>
+        <input id="name" placeholder="mojevm-150" />
+      </div>
+      <div>
+        <label for="newid">VMID (číslo)</label>
+        <input id="newid" placeholder="150" inputmode="numeric" />
+      </div>
+    </div>
+
+    <button id="btnTest">Test backendu</button>
+    <button id="btnCreate">Vytvořit VM</button>
+
+    <h3>Výstup</h3>
+    <pre id="out">Připraveno.</pre>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
