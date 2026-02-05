@@ -1,4 +1,6 @@
 const API_BASE = "https://api.jisavl22.fun";
+const api = (path) => `${API_BASE}${path}`;
+
 
 function out(obj) {
   const el = document.getElementById("out");
