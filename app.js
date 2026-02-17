@@ -1,10 +1,8 @@
 const API_BASE = "https://api.jisavl22.fun";
-const api = (path) => `${API_BASE}${path}`;
 
-
-function out(obj) {
+function setOut(v) {
   const el = document.getElementById("out");
-  el.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+  el.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2);
 }
 
 async function apiGet(path) {
@@ -12,7 +10,7 @@ async function apiGet(path) {
   const txt = await r.text();
   let data;
   try { data = JSON.parse(txt); } catch { data = txt; }
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${typeof data === "string" ? data : (data?.message || txt)}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${data?.error || data?.message || txt}`);
   return data;
 }
 
@@ -25,68 +23,63 @@ async function apiPost(path, body) {
   const txt = await r.text();
   let data;
   try { data = JSON.parse(txt); } catch { data = txt; }
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${typeof data === "string" ? data : (data?.message || txt)}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${data?.error || data?.message || txt}`);
   return data;
+}
+
+async function pollTask(upid, intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
+  const start = Date.now();
+  while (true) {
+    const r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
+    const t = r.task;
+
+    setOut(`Task: ${t.type}\nStatus: ${t.status}\nExit: ${t.exitstatus || ""}`);
+
+    if (t.status === "stopped") return t;
+    if (Date.now() - start > timeoutMs) throw new Error("Task timeout");
+
+    await new Promise((res) => setTimeout(res, intervalMs));
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnTest").addEventListener("click", async () => {
     try {
-      out("Volám /api/test …");
+      setOut("Volám /api/test …");
       const data = await apiGet("/api/test");
-      out(data);
+      setOut(data);
     } catch (e) {
-      out({ ok: false, error: String(e.message || e) });
+      setOut({ ok: false, error: String(e.message || e) });
     }
   });
 
   document.getElementById("btnCreate").addEventListener("click", async () => {
-    async function pollTask(upid) {
-  while (true) {
-    const r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
-    const t = r.task;
-    out.textContent = `Task: ${t.type}\nStatus: ${t.status}\nExit: ${t.exitstatus || ""}`;
+    try {
+      const name = (document.getElementById("name").value || "").trim();
+      const template = (document.getElementById("template").value || "ubuntu").trim();
+      const cores = Number(document.getElementById("cores").value || 2);
+      const memory = Number(document.getElementById("memory").value || 2048);
 
-    if (t.status === "stopped") {
-      if (t.exitstatus === "OK") return true;
-      throw new Error(`Task failed: ${t.exitstatus || "unknown"}`);
+      if (!name) return setOut({ ok: false, error: "Chybí název VM." });
+      if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
+      if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
+
+      setOut("Odesílám create…");
+      const data = await apiPost("/api/vm/create", { name, template, cores, memory }); // 202 + upidClone
+
+      setOut({ step: "clone-started", ...data });
+
+      const tClone = await pollTask(data.upidClone);
+      if (tClone.exitstatus && tClone.exitstatus !== "OK") throw new Error(`Clone failed: ${tClone.exitstatus}`);
+
+      if (data.upidStart) {
+        const tStart = await pollTask(data.upidStart);
+        if (tStart.exitstatus && tStart.exitstatus !== "OK") throw new Error(`Start failed: ${tStart.exitstatus}`);
+      }
+
+      setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
+    } catch (e) {
+      setOut({ ok: false, error: String(e.message || e) });
     }
-    await new Promise(res => setTimeout(res, 3000));
-  }
-}
-
-    const name = (document.getElementById("name").value || "").trim();
-    const newidRaw = (document.getElementById("newid").value || "").trim();
-    const newid = Number(newidRaw);
-
-    if (!name) return out({ ok: false, error: "Chybí název VM." });
-    if (!Number.isInteger(newid) || newid < 100 || newid > 999999) {
-      return out({ ok: false, error: "VMID musí být celé číslo (doporučuju >= 100)." });
-    }
-
-    const resp = await fetch(`${API_BASE}/api/vm/create`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload) // payload = {name, template, cores, memory}
-});
-
-const out = await resp.json();
-
-if (!resp.ok || out.ok === false) {
-  throw new Error(out.error || `Create HTTP ${resp.status}`);
-}
-
-// tady máš UPID(y) z backendu
-const { vmid, upidClone, upidStart } = out;
-
-// 1) počkej na clone
-await pollTask(upidClone);
-
-// 2) počkej na start (pokud ho vracíš)
-if (upidStart) await pollTask(upidStart);
-
-// tady už jen vypiš úspěch do UI
-console.log("Hotovo, VMID:", vmid);
-
   });
 });
