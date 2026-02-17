@@ -4,39 +4,36 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MojeVM – vytvoření VM</title>
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <h1>Vytvoření VM</h1>
 
-  <label>
-    Název VM
-    <input id="name" placeholder="mojevm-web-xyz" />
+  <label>Název VM<br>
+    <input id="name" placeholder="mojevm-web-xyz">
   </label>
+  <br><br>
 
-  <label>
-    Šablona
-    <input id="template" value="ubuntu" />
+  <label>Šablona<br>
+    <input id="template" value="ubuntu">
   </label>
+  <br><br>
 
-  <label>
-    CPU (cores)
-    <input id="cores" type="number" min="1" max="8" value="2" />
+  <label>CPU (cores)<br>
+    <input id="cores" type="number" min="1" max="8" value="2">
   </label>
+  <br><br>
 
-  <label>
-    RAM (MB)
-    <input id="memory" type="number" min="512" max="16384" value="2048" />
+  <label>RAM (MB)<br>
+    <input id="memory" type="number" min="512" max="16384" value="2048">
   </label>
+  <br><br>
 
-  <p>
-    <button id="btnTest">Test backendu</button>
-    <button id="btnCreate">Vytvořit VM</button>
-  </p>
+  <button id="btnTest">Test backendu</button>
+  <button id="btnCreate">Vytvořit VM</button>
 
   <h3>Výstup</h3>
   <pre id="out">Připraveno.</pre>
 
-  <script src="app.js" defer></script>
+  <script src="./app.js" defer></script>
 </body>
 </html>
