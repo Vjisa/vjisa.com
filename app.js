@@ -41,6 +41,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("btnCreate").addEventListener("click", async () => {
+    async function pollTask(upid) {
+  while (true) {
+    const r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
+    const t = r.task;
+    out.textContent = `Task: ${t.type}\nStatus: ${t.status}\nExit: ${t.exitstatus || ""}`;
+
+    if (t.status === "stopped") {
+      if (t.exitstatus === "OK") return true;
+      throw new Error(`Task failed: ${t.exitstatus || "unknown"}`);
+    }
+    await new Promise(res => setTimeout(res, 3000));
+  }
+}
+
     const name = (document.getElementById("name").value || "").trim();
     const newidRaw = (document.getElementById("newid").value || "").trim();
     const newid = Number(newidRaw);
@@ -50,12 +64,29 @@ document.addEventListener("DOMContentLoaded", () => {
       return out({ ok: false, error: "VMID musí být celé číslo (doporučuju >= 100)." });
     }
 
-    try {
-      out("Volám /api/vm/create …");
-      const data = await apiPost("/api/vm/create", { name, newid });
-      out(data);
-    } catch (e) {
-      out({ ok: false, error: String(e.message || e) });
-    }
+    const resp = await fetch(`${API_BASE}/api/vm/create`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload) // payload = {name, template, cores, memory}
+});
+
+const out = await resp.json();
+
+if (!resp.ok || out.ok === false) {
+  throw new Error(out.error || `Create HTTP ${resp.status}`);
+}
+
+// tady máš UPID(y) z backendu
+const { vmid, upidClone, upidStart } = out;
+
+// 1) počkej na clone
+await pollTask(upidClone);
+
+// 2) počkej na start (pokud ho vracíš)
+if (upidStart) await pollTask(upidStart);
+
+// tady už jen vypiš úspěch do UI
+console.log("Hotovo, VMID:", vmid);
+
   });
 });
