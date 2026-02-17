@@ -4,40 +4,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MojeVM – vytvoření VM</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
-    label { display:block; margin-top: 12px; font-weight: 600; }
-    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; margin-top: 6px; }
-    button { margin-top: 14px; padding: 10px 14px; border-radius: 10px; border: 0; cursor:pointer; }
-    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow:auto; }
-    .row { display:flex; gap: 10px; flex-wrap: wrap; }
-    .row > div { flex: 1 1 220px; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
-  
 <body>
   <h1>Vytvoření VM</h1>
 
-  <div class="card">
-    <div class="row">
-      <div>
-        <label for="name">Název VM</label>
-        <input id="name" placeholder="mojevm-150" />
-      </div>
-      <div>
-        <label for="newid">VMID (číslo)</label>
-        <input id="newid" placeholder="150" inputmode="numeric" />
-      </div>
-    </div>
+  <label>
+    Název VM
+    <input id="name" placeholder="mojevm-web-xyz" />
+  </label>
 
+  <label>
+    Šablona
+    <input id="template" value="ubuntu" />
+  </label>
+
+  <label>
+    CPU (cores)
+    <input id="cores" type="number" min="1" max="8" value="2" />
+  </label>
+
+  <label>
+    RAM (MB)
+    <input id="memory" type="number" min="512" max="16384" value="2048" />
+  </label>
+
+  <p>
     <button id="btnTest">Test backendu</button>
     <button id="btnCreate">Vytvořit VM</button>
+  </p>
 
-    <h3>Výstup</h3>
-    <pre id="out">Připraveno.</pre>
-  </div>
+  <h3>Výstup</h3>
+  <pre id="out">Připraveno.</pre>
 
-<script src="./app.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
