@@ -6,7 +6,7 @@ function setOut(v) {
 }
 
 async function apiGet(path) {
-  const r = await fetch(`${API_BASE}${path}`, { method: "GET" });
+  const r = await fetch(`${API_BASE}${path}`);
   const txt = await r.text();
   let data;
   try { data = JSON.parse(txt); } catch { data = txt; }
@@ -38,14 +38,14 @@ async function pollTask(upid, intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
     if (t.status === "stopped") return t;
     if (Date.now() - start > timeoutMs) throw new Error("Task timeout");
 
-    await new Promise((res) => setTimeout(res, intervalMs));
+    await new Promise(res => setTimeout(res, intervalMs));
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnTest").addEventListener("click", async () => {
     try {
-      setOut("Volám /api/test …");
+      setOut("Volám /api/test…");
       const data = await apiGet("/api/test");
       setOut(data);
     } catch (e) {
