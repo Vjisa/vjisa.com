@@ -63,9 +63,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!name) return setOut({ ok: false, error: "Chybí název VM." });
       if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
       if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
+const storageKey = `create:${name}`;
+let requestId = localStorage.getItem(storageKey);
+if (!requestId) {
+  requestId = (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+  localStorage.setItem(storageKey, requestId);
+}
 
       setOut("Odesílám create…");
-      const data = await apiPost("/api/vm/create", { name, template, cores, memory }); // 202 + upidClone
+      const data = await apiPost("/api/vm/create", { name, template, cores, memory, requestId }); // 202 + upidClone
 
       setOut({ step: "clone-started", ...data });
 
