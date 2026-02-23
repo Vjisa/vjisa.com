@@ -27,17 +27,29 @@ async function apiPost(path, body) {
   return data;
 }
 
-async function pollTask(upid, intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
+async function pollTask(upid, label = "Probíhá…", intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
   const start = Date.now();
   while (true) {
-    const r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
+    let r;
+    try {
+      r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
+    } catch (e) {
+      // když se ti na chvíli objeví 502 (restart backendu), jen to zkus znovu
+      const msg = String(e.message || e);
+      if (/HTTP (502|503|504)/.test(msg) && Date.now() - start < timeoutMs) {
+        await new Promise(res => setTimeout(res, intervalMs));
+        continue;
+      }
+      throw e;
+    }
+
     const t = r.task;
+    const state = r.state || (t.status === "stopped" ? (t.exitstatus === "OK" ? "done" : "error") : "running");
 
-    setOut(`Task: ${t.type}\nStatus: ${t.status}\nExit: ${t.exitstatus || ""}`);
+    setOut(`${label}\nState: ${state}\nTask: ${t.type}\nExit: ${r.exitstatus || t.exitstatus || ""}`);
 
-    if (t.status === "stopped") return t;
+    if (state !== "running") return r;
     if (Date.now() - start > timeoutMs) throw new Error("Task timeout");
-
     await new Promise(res => setTimeout(res, intervalMs));
   }
 }
@@ -75,7 +87,7 @@ if (!requestId) {
 
       setOut({ step: "clone-started", ...data });
 
-      const tClone = await pollTask(data.upidClone);
+      const rClone = await pollTask(data.upidClone, "Klonuji…");
       if (tClone.exitstatus && tClone.exitstatus !== "OK") throw new Error(`Clone failed: ${tClone.exitstatus}`);
 
       if (data.upidStart) {
@@ -86,6 +98,7 @@ if (!requestId) {
       setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
     } catch (e) {
       setOut({ ok: false, error: String(e.message || e) });
+      localStorage.removeItem(storageKey);
     }
   });
 });
