@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (storageKey) localStorage.removeItem(storageKey);
     setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
-  } catch (e) {
+  }   } catch (e) {
     if (storageKey) localStorage.removeItem(storageKey);
     setOut({ ok: false, error: String(e.message || e) });
   }
