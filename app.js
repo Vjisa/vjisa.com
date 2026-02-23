@@ -66,44 +66,41 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("btnCreate").addEventListener("click", async () => {
-    let storageKey;
-    try {
-      const name = (document.getElementById("name").value || "").trim();
-      const template = (document.getElementById("template").value || "ubuntu").trim();
-      const cores = Number(document.getElementById("cores").value || 2);
-      const memory = Number(document.getElementById("memory").value || 2048);
+  let storageKey;
+  try {
+    const name = (document.getElementById("name").value || "").trim();
+    const template = (document.getElementById("template").value || "ubuntu").trim();
+    const cores = Number(document.getElementById("cores").value || 2);
+    const memory = Number(document.getElementById("memory").value || 2048);
 
-      if (!name) return setOut({ ok: false, error: "Chybí název VM." });
-      if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
-      if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
-storageKey = `create:${name}`;
-let requestId = localStorage.getItem(storageKey);
-if (!requestId) {
-  requestId = (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
-  localStorage.setItem(storageKey, requestId);
-}
+    if (!name) return setOut({ ok: false, error: "Chybí název VM." });
+    if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
+    if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
 
-      setOut("Odesílám create…");
-      const data = await apiPost("/api/vm/create", { name, template, cores, memory, requestId }); // 202 + upidClone
+    storageKey = `create:${name}`;
+    let requestId = localStorage.getItem(storageKey);
+    if (!requestId) {
+      requestId = (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+      localStorage.setItem(storageKey, requestId);
+    }
 
-      setOut({ step: "clone-started", ...data });
+    setOut("Odesílám create…");
+    const data = await apiPost("/api/vm/create", { name, template, cores, memory, requestId });
+
+    setOut({ step: "clone-started", ...data });
 
     const rClone = await pollTask(data.upidClone, "Klonuji…");
-if (rClone.exitstatus && rClone.exitstatus !== "OK") throw new Error(`Clone failed: ${rClone.exitstatus}`);
+    if (rClone.exitstatus && rClone.exitstatus !== "OK") throw new Error(`Clone failed: ${rClone.exitstatus}`);
 
-if (data.upidStart) {
-  const rStart = await pollTask(data.upidStart, "Spouštím…");
-  if (rStart.exitstatus && rStart.exitstatus !== "OK") throw new Error(`Start failed: ${rStart.exitstatus}`);
-}
+    if (data.upidStart) {
+      const rStart = await pollTask(data.upidStart, "Spouštím…");
+      if (rStart.exitstatus && rStart.exitstatus !== "OK") throw new Error(`Start failed: ${rStart.exitstatus}`);
+    }
 
-if (storageKey) localStorage.removeItem(storageKey);
-setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
-} catch (e) {
-  if (storageKey) localStorage.removeItem(storageKey);
-  setOut({ ok: false, error: String(e.message || e) });
-} catch (e) {
-  if (storageKey) localStorage.removeItem(storageKey);
-  setOut({ ok: false, error: String(e.message || e) });
-}
-  });
+    if (storageKey) localStorage.removeItem(storageKey);
+    setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
+  } catch (e) {
+    if (storageKey) localStorage.removeItem(storageKey);
+    setOut({ ok: false, error: String(e.message || e) });
+  }
 });
