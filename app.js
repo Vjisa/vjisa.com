@@ -94,11 +94,14 @@ if (rClone.exitstatus && rClone.exitstatus !== "OK") throw new Error(`Clone fail
 if (data.upidStart) {
   const rStart = await pollTask(data.upidStart, "Spouštím…");
   if (rStart.exitstatus && rStart.exitstatus !== "OK") throw new Error(`Start failed: ${rStart.exitstatus}`);
-}  
-    }
+}
 
-      setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
-    } catch (e) {
+if (storageKey) localStorage.removeItem(storageKey);
+setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
+} catch (e) {
+  if (storageKey) localStorage.removeItem(storageKey);
+  setOut({ ok: false, error: String(e.message || e) });
+} catch (e) {
   if (storageKey) localStorage.removeItem(storageKey);
   setOut({ ok: false, error: String(e.message || e) });
 }
