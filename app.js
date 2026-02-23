@@ -15,15 +15,31 @@ async function parseResponse(r) {
   }
 }
 
+async function fetchRetry(url, options, tries = 4, delayMs = 400) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, options);
+      if ([502, 503, 504].includes(r.status) && i < tries - 1) {
+        await sleep(delayMs);
+        continue;
+      }
+      return r;
+    } catch (e) {
+      if (i >= tries - 1) throw e;
+      await sleep(delayMs);
+    }
+  }
+}
+
 async function apiGet(path) {
-  const r = await fetch(`${API_BASE}${path}`);
+  const r = await fetchRetry(`${API_BASE}${path}`, {});
   const data = await parseResponse(r);
   if (!r.ok) throw new Error(`HTTP ${r.status}: ${data?.error || data?.message || String(data)}`);
   return data;
 }
 
 async function apiPost(path, body) {
-  const r = await fetch(`${API_BASE}${path}`, {
+  const r = await fetchRetry(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
