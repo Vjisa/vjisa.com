@@ -66,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("btnCreate").addEventListener("click", async () => {
+    let storageKey;
     try {
       const name = (document.getElementById("name").value || "").trim();
       const template = (document.getElementById("template").value || "ubuntu").trim();
@@ -75,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!name) return setOut({ ok: false, error: "Chybí název VM." });
       if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
       if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
-const storageKey = `create:${name}`;
+storageKey = `create:${name}`;
 let requestId = localStorage.getItem(storageKey);
 if (!requestId) {
   requestId = (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
@@ -87,18 +88,19 @@ if (!requestId) {
 
       setOut({ step: "clone-started", ...data });
 
-      const rClone = await pollTask(data.upidClone, "Klonuji…");
-      if (tClone.exitstatus && tClone.exitstatus !== "OK") throw new Error(`Clone failed: ${tClone.exitstatus}`);
+    const rClone = await pollTask(data.upidClone, "Klonuji…");
+if (rClone.exitstatus && rClone.exitstatus !== "OK") throw new Error(`Clone failed: ${rClone.exitstatus}`);
 
-      if (data.upidStart) {
-        const tStart = await pollTask(data.upidStart);
-        if (tStart.exitstatus && tStart.exitstatus !== "OK") throw new Error(`Start failed: ${tStart.exitstatus}`);
-      }
+if (data.upidStart) {
+  const rStart = await pollTask(data.upidStart, "Spouštím…");
+  if (rStart.exitstatus && rStart.exitstatus !== "OK") throw new Error(`Start failed: ${rStart.exitstatus}`);
+}  
+    }
 
       setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
     } catch (e) {
-      setOut({ ok: false, error: String(e.message || e) });
-      localStorage.removeItem(storageKey);
-    }
+  if (storageKey) localStorage.removeItem(storageKey);
+  setOut({ ok: false, error: String(e.message || e) });
+}
   });
 });
