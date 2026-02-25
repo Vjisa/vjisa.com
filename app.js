@@ -143,7 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (storageKey) localStorage.removeItem(storageKey);
-        setOut({ ok: true, vmid: data.vmid, message: "Hotovo" });
+        setOut({ ok: true, vmid: data.vmid, message: "Hotovo", console: `https://api.jisavl22.fun/console?vmid=${data.vmid}` });
+window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
       } catch (e) {
         if (storageKey) localStorage.removeItem(storageKey);
         setOut({ ok: false, error: String(e.message || e) });
