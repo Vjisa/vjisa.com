@@ -186,32 +186,37 @@ window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
     const btnStart = document.createElement("button");
     btnStart.textContent = "Start";
     btnStart.onclick = async () => {
-      setOut("Startuji…");
-      const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
-      setOut(r);
-      await refreshVmList();
-    };
+  setOut("Startuji…");
+  const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
+  setOut(r);
+  if (r?.upid) await pollTask(r.upid, "Startuji…");
+  await refreshVmList();
+};
 
     const btnStop = document.createElement("button");
     btnStop.textContent = "Stop";
     btnStop.onclick = async () => {
-      setOut("Zastavuji…");
-      const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-      setOut(r);
-      await refreshVmList();
-    };
+  setOut("Zastavuji…");
+  const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+  setOut(r);
+  if (r?.upid) await pollTask(r.upid, "Zastavuji…");
+  await refreshVmList();
+};
 
     const btnDelete = document.createElement("button");
     btnDelete.textContent = "Smazat";
     btnDelete.onclick = async () => {
-      if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
-      setOut("Mažu…");
-      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE" });
-      const d = await parseResponse(r);
-      if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
-      setOut(d);
-      await refreshVmList();
-    };
+  if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
+
+  setOut("Mažu…");
+  const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE" });
+  const d = await parseResponse(r);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
+
+  setOut(d);
+  if (d?.upid) await pollTask(d.upid, "Mažu…");
+  await refreshVmList();
+};
 
     actions.appendChild(btnConsole);
     actions.appendChild(btnStart);
