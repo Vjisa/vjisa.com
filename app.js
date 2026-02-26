@@ -91,6 +91,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnTest = document.getElementById("btnTest");
   const btnCreate = document.getElementById("btnCreate");
 
+
+  
   if (btnTest) {
     btnTest.addEventListener("click", async () => {
       try {
@@ -151,4 +153,16 @@ window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
       }
     });
   }
+
+  async function refreshVmList() {
+  const data = await apiGet("/api/vm/list");
+  const lines = [];
+  for (const vm of data.vms || []) {
+    lines.push(`VM ${vm.vmid} | ${vm.name} | ${vm.status} | console: ${vm.consoleUrl}`);
+  }
+  setOut(lines.join("\n") || "Žádné VM v poolu mojevm.");
+}
+
+refreshVmList().catch(e => setOut({ ok: false, error: String(e.message || e) }));
+  
 });
