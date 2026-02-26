@@ -175,7 +175,7 @@ if (links) {
 }
 
 await refreshVmList();
-        .open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
+       window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
       } catch (e) {
         if (storageKey) localStorage.removeItem(storageKey);
         setOut({ ok: false, error: String(e.message || e) });
