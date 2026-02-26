@@ -210,7 +210,7 @@ await refreshVmList();
 
     const btnConsole = document.createElement("button");
     btnConsole.textContent = "Konzole";
-    btnConsole.onclick = () => .open(vm.consoleUrl, "_blank");
+    btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
 
     const btnStart = document.createElement("button");
     btnStart.textContent = "Start";
