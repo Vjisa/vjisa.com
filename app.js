@@ -156,11 +156,71 @@ window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
 
   async function refreshVmList() {
   const data = await apiGet("/api/vm/list");
-  const lines = [];
-  for (const vm of data.vms || []) {
-    lines.push(`VM ${vm.vmid} | ${vm.name} | ${vm.status} | console: ${vm.consoleUrl}`);
+  const out = document.getElementById("out");
+  out.innerHTML = "";
+
+  const vms = data.vms || [];
+  if (!vms.length) {
+    out.textContent = "Žádné VM v poolu mojevm.";
+    return;
   }
-  setOut(lines.join("\n") || "Žádné VM v poolu mojevm.");
+
+  for (const vm of vms) {
+    const row = document.createElement("div");
+    row.style.padding = "8px";
+    row.style.borderBottom = "1px solid #333";
+
+    const title = document.createElement("div");
+    title.textContent = `VM ${vm.vmid} | ${vm.name} | ${vm.status}`;
+    row.appendChild(title);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+    actions.style.marginTop = "6px";
+
+    const btnConsole = document.createElement("button");
+    btnConsole.textContent = "Konzole";
+    btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+
+    const btnStart = document.createElement("button");
+    btnStart.textContent = "Start";
+    btnStart.onclick = async () => {
+      setOut("Startuji…");
+      const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
+      setOut(r);
+      await refreshVmList();
+    };
+
+    const btnStop = document.createElement("button");
+    btnStop.textContent = "Stop";
+    btnStop.onclick = async () => {
+      setOut("Zastavuji…");
+      const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+      setOut(r);
+      await refreshVmList();
+    };
+
+    const btnDelete = document.createElement("button");
+    btnDelete.textContent = "Smazat";
+    btnDelete.onclick = async () => {
+      if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
+      setOut("Mažu…");
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE" });
+      const d = await parseResponse(r);
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
+      setOut(d);
+      await refreshVmList();
+    };
+
+    actions.appendChild(btnConsole);
+    actions.appendChild(btnStart);
+    actions.appendChild(btnStop);
+    actions.appendChild(btnDelete);
+
+    row.appendChild(actions);
+    out.appendChild(row);
+  }
 }
 
 refreshVmList().catch(e => setOut({ ok: false, error: String(e.message || e) }));
