@@ -1,9 +1,24 @@
 const API_BASE = "https://api.jisavl22.fun";
 
 function setOut(v) {
-  const el = document.getElementById("out");
-  if (!el) return;
-  el.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2);
+  const out = document.getElementById("out");
+  if (!out) return;
+
+  let log = document.getElementById("log");
+  if (!log) {
+    log = document.createElement("pre");
+    log.id = "log";
+    log.style.whiteSpace = "pre-wrap";
+    log.style.margin = "8px 0";
+    out.parentNode.insertBefore(log, out);
+
+    const links = document.createElement("div");
+    links.id = "logLinks";
+    links.style.margin = "6px 0 12px 0";
+    out.parentNode.insertBefore(links, out);
+  }
+
+  log.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2);
 }
 
 async function parseResponse(r) {
@@ -146,7 +161,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (storageKey) localStorage.removeItem(storageKey);
         setOut({ ok: true, vmid: data.vmid, message: "Hotovo", console: `https://api.jisavl22.fun/console?vmid=${data.vmid}` });
-window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
+const consoleUrl = `https://api.jisavl22.fun/console?vmid=${data.vmid}`;
+
+const links = document.getElementById("logLinks");
+if (links) {
+  links.innerHTML = "";
+  const a = document.createElement("a");
+  a.href = consoleUrl;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = "Otevřít konzoli";
+  links.appendChild(a);
+}
+
+await refreshVmList();
+        .open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
       } catch (e) {
         if (storageKey) localStorage.removeItem(storageKey);
         setOut({ ok: false, error: String(e.message || e) });
@@ -181,7 +210,7 @@ window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
 
     const btnConsole = document.createElement("button");
     btnConsole.textContent = "Konzole";
-    btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+    btnConsole.onclick = () => .open(vm.consoleUrl, "_blank");
 
     const btnStart = document.createElement("button");
     btnStart.textContent = "Start";
