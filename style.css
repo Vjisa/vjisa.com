@@ -630,3 +630,19 @@ body.theme-dark {
 .theme-dark textarea::placeholder {
   color: rgba(226, 232, 240, 0.55) !important;
 }
+
+
+/* Dark mode: čitelnost textů */
+.theme-dark .text-muted,
+.theme-dark .page-subtitle,
+.theme-dark .brand-subtitle {
+  color: rgba(226, 232, 240, 0.70) !important;
+}
+
+.theme-dark .table {
+  color: #e2e8f0;
+}
+.theme-dark .table td,
+.theme-dark .table th {
+  border-color: rgba(148,163,184,0.25) !important;
+}
