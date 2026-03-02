@@ -548,3 +548,8 @@ body {
     animation: none !important;
   }
 }
+
+/* --- FIX: skutečný světlý režim pozadí --- */
+body.theme-light {
+  background: radial-gradient(circle at top, #ffffff 0, #f1f5f9 55%, #dbeafe 100%);
+}
