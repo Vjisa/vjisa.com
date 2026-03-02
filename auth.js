@@ -1,31 +1,79 @@
 // auth.js
+const API_BASE = "https://api.jisavl22.fun";
 
-function getRoleFromJwt(token) {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-    const data = JSON.parse(json);
-    return data.role || (data.admin ? "admin" : null) || null;
-  } catch {
-    return null;
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+function setSession({ token, role, pool, username }) {
+  if (token) localStorage.setItem("token", token);
+  if (role != null) localStorage.setItem("role", role);
+  if (pool != null) localStorage.setItem("pool", pool);
+  if (username != null) localStorage.setItem("username", username);
+}
+
+function clearSession() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("pool");
+  localStorage.removeItem("username");
+}
+
+function authHeaders(extra = {}) {
+  const t = getToken();
+  return t ? { ...extra, Authorization: `Bearer ${t}` } : { ...extra };
+}
+
+async function apiFetch(path, options = {}) {
+  const r = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: authHeaders(options.headers || {}),
+  });
+
+  if (r.status === 401) {
+    clearSession();
+    if (document.body?.dataset?.requireAuth === "1") {
+      window.location.href = "index.html";
+    }
+    throw new Error("Unauthorized");
   }
+
+  const txt = await r.text();
+  let data;
+  try { data = JSON.parse(txt); } catch { data = txt; }
+
+  if (!r.ok) {
+    const msg = data?.error || data?.message || String(data);
+    throw new Error(`HTTP ${r.status}: ${msg}`);
+  }
+  return data;
 }
 
-function getUserRole() {
-  const token = localStorage.getItem("token");
-  const fromJwt = token ? getRoleFromJwt(token) : null;
-  return fromJwt || localStorage.getItem("role") || "user";
+async function syncWhoAmI() {
+  // Server-side pravda: role/pool se bere z mapování, ne z tokenu
+  const me = await apiFetch("/api/auth/whoami");
+  // očekáváš: { ok:true, username, role, pool, pveId }
+  setSession({
+    username: me.username,
+    role: me.role,
+    pool: me.pool ?? "",
+  });
+  return me;
 }
 
-function applyRoleUI() {
-  const role = getUserRole();
-  document.documentElement.dataset.role = role;
+function applyRoleUI(role) {
+  document.documentElement.dataset.role = role || "user";
 
-  // vše s data-role="admin" uvidí jen admin
+  // jen admin
   document.querySelectorAll('[data-role="admin"]').forEach(el => {
     el.style.display = (role === "admin") ? "" : "none";
   });
+}
+
+function bindUserUI({ username, role, pool }) {
+  document.querySelectorAll('[data-bind="username"]').forEach(el => el.textContent = username || "—");
+  document.querySelectorAll('[data-bind="role"]').forEach(el => el.textContent = role || "—");
+  document.querySelectorAll('[data-bind="pool"]').forEach(el => el.textContent = pool || "—");
 }
 
 function applyTheme() {
@@ -38,7 +86,6 @@ function applyTheme() {
 function setupThemeToggle() {
   const btn = document.getElementById("themeToggle");
   if (!btn) return;
-
   btn.addEventListener("click", () => {
     const cur = localStorage.getItem("theme") || "light";
     const next = (cur === "dark") ? "light" : "dark";
@@ -47,11 +94,37 @@ function setupThemeToggle() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function setupLogout() {
+  const a = document.getElementById("logoutLink");
+  if (!a) return;
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearSession();
+    window.location.href = "index.html";
+  });
+}
+
+async function requireAuthPage() {
+  if (document.body?.dataset?.requireAuth !== "1") return;
+  if (!getToken()) {
+    window.location.href = "index.html";
+    return;
+  }
+  const me = await syncWhoAmI();
+  applyRoleUI(me.role);
+  bindUserUI(me);
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   applyTheme();
-  applyRoleUI();
   setupThemeToggle();
+  setupLogout();
+
+  try {
+    await requireAuthPage();
+  } catch {
+    // redirect už proběhne
+  }
 });
 
-// export pro jiné skripty
-window.__auth = { getUserRole, applyRoleUI, applyTheme };
+window.__api = { apiFetch, syncWhoAmI, getToken, setSession, clearSession };
