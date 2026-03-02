@@ -2,38 +2,136 @@
 <html lang="cs">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MojeVM – vytvoření VM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MojeVM – Vytvoření VM</title>
+
+  <!-- Bootstrap (kvůli btn/form třídám, které už ve zbytku webu používáš) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Tvůj design -->
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <h1>Vytvoření VM</h1>
 
-  <label>Název VM<br>
-    <input id="name" placeholder="mojevm-web-xyz">
-  </label>
-  <br><br>
+<body class="theme-dark">
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">☁️</div>
+        <div>
+          <div class="brand-name">MojeVM</div>
+          <small class="brand-subtitle">Portál virtuálních strojů</small>
+        </div>
+      </div>
 
-  <label>Šablona<br>
-    <input id="template" value="ubuntu">
-  </label>
-  <br><br>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="home.html"><span class="icon">🏠</span> Dashboard</a>
+        <a class="sidebar-link" href="myvm.html"><span class="icon">🖥️</span> Moje VM</a>
+        <a class="sidebar-link active" href="vm.html"><span class="icon">➕</span> Vytvořit VM</a>
+        <a class="sidebar-link" href="settings.html"><span class="icon">⚙️</span> Nastavení</a>
+      </nav>
 
-  <label>CPU (cores)<br>
-    <input id="cores" type="number" min="1" max="8" value="2">
-  </label>
-  <br><br>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar">U</div>
+          <div>
+            <div class="user-name">Uživatel</div>
+            <div class="user-role">Student / Admin</div>
+          </div>
+        </div>
+        <a class="sidebar-link" href="index.html"><span class="icon">🚪</span> Odhlásit se</a>
+      </div>
+    </aside>
 
-  <label>RAM (MB)<br>
-    <input id="memory" type="number" min="512" max="16384" value="2048">
-  </label>
-  <br><br>
+    <!-- Main -->
+    <main class="main-content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Vytvoření VM</h1>
+          <p class="page-subtitle">Vyplň parametry, odešle se požadavek na backend a následně se VM naklonuje a případně spustí.</p>
+        </div>
 
-  <button id="btnTest">Test backendu</button>
-  <button id="btnCreate">Vytvořit VM</button>
+        <div class="page-actions">
+          <!-- Tlačítko zpět -->
+          <a class="btn btn-light btn-icon" href="home.html" title="Zpět na Dashboard">←</a>
+          <a class="btn btn-primary" href="myvm.html">Moje VM</a>
+        </div>
+      </div>
 
-  <h3>Výstup</h3>
-  <pre id="out">Připraveno.</pre>
+      <div class="row g-3">
+        <!-- Form -->
+        <div class="col-12 col-lg-6">
+          <div class="card">
+            <div class="card-body p-4">
+              <h2 class="h5 mb-3">Parametry</h2>
 
-  <script src="./app.js" defer></script>
+              <div class="mb-3">
+                <label class="form-label" for="name">Název VM</label>
+                <input class="form-control" id="name" placeholder="např. skrlant-ubuntu" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="template">Šablona (OS)</label>
+                <select class="form-select" id="template">
+                  <option value="ubuntu">Ubuntu Server</option>
+                  <option value="debian">Debian</option>
+                  <option value="windows">Windows</option>
+                </select>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="cores">CPU (cores)</label>
+                  <input class="form-control" id="cores" type="number" min="1" max="8" value="2" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="memory">RAM (MB)</label>
+                  <input class="form-control" id="memory" type="number" min="512" max="16384" value="2048" />
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-light" id="btnTest" type="button">Test backendu</button>
+                <button class="btn btn-primary" id="btnCreate" type="button">Vytvořit VM</button>
+              </div>
+
+              <div class="text-muted small mt-3">
+                Pozn.: validace je v JS (cores 1–8, memory 512–16384). :contentReference[oaicite:2]{index=2}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output + list (app.js si sem vloží log + odkazy + seznam) -->
+        <div class="col-12 col-lg-6">
+          <div class="card">
+            <div class="card-body p-4">
+              <h2 class="h5 mb-3">Výstup a seznam VM</h2>
+
+              <!-- app.js: vytvoří <pre id="log"> a <div id="logLinks"> těsně před #out -->
+              <div id="out" class="text-muted">Připraveno.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Předvýběr šablony z URL: vm.html?template=debian -->
+  <script>
+    (function () {
+      const p = new URLSearchParams(location.search);
+      const t = (p.get("template") || "").trim();
+      if (!t) return;
+      const sel = document.getElementById("template");
+      if (!sel) return;
+      for (const opt of sel.options) {
+        if (opt.value === t) sel.value = t;
+      }
+    })();
+  </script>
+
+  <!-- Tvoje logika (ponechávám, aby se nic nerozbilo) -->
+  <script src="app.js" defer></script>
 </body>
 </html>
