@@ -1,167 +1,121 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <title>MojeVM – Nastavení účtu</title>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="style.css" rel="stylesheet" />
+  <title>MojeVM – Nastavení</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
-  <script src="auth.js" defer></script>
-<body>
+
+<body class="theme-light" data-require-auth="1">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">☁️</div>
-        <div class="sidebar-title">
-          <span class="brand-name">MojeVM</span>
-          <span class="brand-subtitle">Portál virtuálních strojů</span>
+        <div>
+          <div class="brand-name">MojeVM</div>
+          <small class="brand-subtitle">Portál virtuálních strojů</small>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <a href="home.html" class="sidebar-link">
-          <span class="icon">🏠</span>
-          <span>Dashboard</span>
-        </a>
-        <a href="myvm.html" class="sidebar-link">
-          <span class="icon">🖥️</span>
-          <span>Moje VM</span>
-        </a>
-        <a href="settings.html" class="sidebar-link active">
-          <span class="icon">⚙️</span>
-          <span>Nastavení</span>
-        </a>
+        <a class="sidebar-link" href="home.html"><span class="icon">🏠</span> Dashboard</a>
+        <a class="sidebar-link" href="myvm.html"><span class="icon">🖥️</span> Moje VM</a>
+        <a class="sidebar-link" href="vm.html"><span class="icon">➕</span> Vytvořit VM</a>
+        <a class="sidebar-link active" href="settings.html"><span class="icon">⚙️</span> Nastavení</a>
+        <a class="sidebar-link" data-role="admin" href="audit.html"><span class="icon">🧾</span> Audit</a>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="sidebar-user">
-          <div class="user-avatar">👤</div>
-          <div>
-            <div class="user-name" id="sidebarUser">Uživatel</div>
-            <div class="user-role">Student / Admin</div>
-          </div>
-        </div>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-light w-100">Odhlásit se</button>
+      <div class="sidebar-footer d-flex gap-2 align-items-center">
+        <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
+        <a class="sidebar-link" href="#" id="logoutLink"><span class="icon">🚪</span> Odhlásit se</a>
+      </div>
+
+      <div class="p-3 small text-muted">
+        <div><b data-bind="username">—</b></div>
+        <div><span data-bind="role">—</span> | pool: <span data-bind="pool">—</span></div>
       </div>
     </aside>
 
     <main class="main-content">
-      <header class="page-header">
+      <div class="page-header">
         <div>
-          <h1 class="page-title">Nastavení účtu</h1>
-          <p class="page-subtitle">Upravte si vzhled prostředí a zkontrolujte informace o svém účtu.</p>
+          <h1 class="page-title">Nastavení</h1>
+          <p class="page-subtitle">Motiv a informace o účtu (z backendu).</p>
         </div>
-      </header>
+      </div>
 
-      <section class="card settings-card">
-        <div class="card-body">
-          <h2 class="card-title">Účet</h2>
-          <div class="row g-3 align-items-center">
-            <div class="col-md-4">
-              <label class="form-label">Uživatelské jméno</label>
-              <input type="text" id="usernameField" class="form-control" disabled />
+      <div class="card mb-3">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-3">Účet</h2>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Uživatelské jméno</div>
+              <div class="fw-semibold" data-bind="username">—</div>
             </div>
-            <div class="col-md-8">
-              <p class="mb-0 text-muted">
-                Uživatelské jméno je v této demo verzi uložené pouze v prohlížeči (localStorage).
-                V reálném nasazení by bylo načítáno z backendu.
-              </p>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Role</div>
+              <div class="fw-semibold" data-bind="role">—</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Pool</div>
+              <div class="fw-semibold" data-bind="pool">—</div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="card settings-card">
-        <div class="card-body">
-          <h2 class="card-title">Vzhled a motiv</h2>
-          <p>Vyberte, jak má portál vypadat.</p>
+      <div class="card mb-3">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-3">Vzhled</h2>
 
-          <div class="row g-3 align-items-center mb-3">
-            <div class="col-md-4">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-5">
               <label class="form-label" for="themeSelect">Barevné schéma</label>
-              <select id="themeSelect" class="form-select">
+              <select class="form-select" id="themeSelect">
                 <option value="light">Světlý motiv</option>
                 <option value="dark">Tmavý motiv</option>
               </select>
+              <div class="text-muted small mt-2">Ukládá se do localStorage a platí pro všechny stránky.</div>
             </div>
-            <div class="col-md-8">
-              <div class="theme-preview">
-                <div class="theme-preview-light"></div>
-                <div class="theme-preview-dark"></div>
-              </div>
-              <p class="small text-muted mt-2 mb-0">
-                Volba se uloží v prohlížeči a použije se při každém dalším otevření portálu.
-              </p>
+
+            <div class="col-12 col-md-7 d-flex gap-2">
+              <button class="btn btn-primary" id="saveTheme" type="button">Uložit</button>
+              <button class="btn btn-outline-danger" id="clearLocal" type="button">Odstranit lokální data</button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="d-flex gap-2">
-            <button id="saveSettingsBtn" class="btn btn-primary">💾 Uložit nastavení</button>
-            <button id="resetSettingsBtn" class="btn btn-outline-danger">🔁 Odstranit lokální data</button>
+      <div class="card">
+        <div class="card-body p-4">
+          <h2 class="h5 mb-2">O aplikaci</h2>
+          <div class="text-muted">
+            Frontend pro správu VM na Proxmoxu. Přístup je omezen rolemi a pooly (admin vidí vše, user jen svůj pool).
           </div>
         </div>
-      </section>
-
-      <section class="card settings-card">
-        <div class="card-body">
-          <h2 class="card-title">O aplikaci</h2>
-          <p>
-            Tato webová aplikace je součástí maturitního projektu. Slouží jako front-end pro správu
-            virtuálních strojů běžících na hypervizoru (např. Proxmox VE). V této verzi běží pouze
-            v&nbsp;demonstračním režimu bez napojení na reálné API.
-          </p>
-        </div>
-      </section>
+      </div>
     </main>
   </div>
 
+  <script src="auth.js" defer></script>
   <script>
-    (function() {
-      const username = localStorage.getItem("mvUsername");
-      if (!username) {
-        window.location.href = "index.html";
-        return;
-      }
+    document.addEventListener("DOMContentLoaded", () => {
+      const sel = document.getElementById("themeSelect");
+      const cur = localStorage.getItem("theme") || "light";
+      sel.value = cur;
 
-      const theme = localStorage.getItem("mvTheme") || "light";
-      document.body.classList.add("theme-" + theme);
-
-      const sidebarUser = document.getElementById("sidebarUser");
-      const usernameField = document.getElementById("usernameField");
-      const logoutBtn = document.getElementById("logoutBtn");
-      const themeSelect = document.getElementById("themeSelect");
-      const saveSettingsBtn = document.getElementById("saveSettingsBtn");
-      const resetSettingsBtn = document.getElementById("resetSettingsBtn");
-
-      sidebarUser.textContent = username;
-      usernameField.value = username;
-      themeSelect.value = theme;
-
-      logoutBtn.addEventListener("click", function() {
-        localStorage.removeItem("mvUsername");
-        window.location.href = "index.html";
+      document.getElementById("saveTheme").addEventListener("click", () => {
+        localStorage.setItem("theme", sel.value);
+        window.__auth?.applyTheme?.();
       });
 
-      saveSettingsBtn.addEventListener("click", function() {
-        const newTheme = themeSelect.value;
-        localStorage.setItem("mvTheme", newTheme);
-
-        document.body.classList.remove("theme-light", "theme-dark");
-        document.body.classList.add("theme-" + newTheme);
-
-        alert("Nastavení vzhledu bylo uloženo.");
-      });
-
-      resetSettingsBtn.addEventListener("click", function() {
-        if (!confirm("Opravdu chcete odstranit všechna lokální data aplikace?")) {
-          return;
-        }
-
+      document.getElementById("clearLocal").addEventListener("click", () => {
         localStorage.clear();
         window.location.href = "index.html";
       });
-    })();
+    });
   </script>
 </body>
 </html>
