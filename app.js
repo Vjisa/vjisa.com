@@ -1,28 +1,13 @@
+// app.js
 const API_BASE = "https://api.jisavl22.fun";
 
 function getRole() {
-  return (window.__auth?.getUserRole?.() || localStorage.getItem("role") || "user");
+  return localStorage.getItem("role") || "user";
 }
 
-function authHeaders() {
+function authHeaders(extra = {}) {
   const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// Na create stránce nepíšeme logy, jen krátký status do #status
-function setOut(v) {
-  const isCreate = document.body?.dataset?.page === "create";
-  if (isCreate) {
-    const status = document.getElementById("status");
-    if (!status) return;
-    const txt = (typeof v === "string") ? v : (v?.message || v?.error || JSON.stringify(v));
-    status.textContent = txt;
-    return;
-  }
-
-  const out = document.getElementById("out");
-  if (!out) return;
-  out.textContent = (typeof v === "string") ? v : JSON.stringify(v, null, 2);
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
 }
 
 async function parseResponse(r) {
@@ -30,56 +15,43 @@ async function parseResponse(r) {
   try { return JSON.parse(txt); } catch { return txt; }
 }
 
-function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
-
-async function fetchRetry(url, options, tries = 4, delayMs = 400) {
-  for (let i = 0; i < tries; i++) {
-    try {
-      const r = await fetch(url, options);
-      if ([502, 503, 504].includes(r.status) && i < tries - 1) {
-        await sleep(delayMs);
-        continue;
-      }
-      return r;
-    } catch (e) {
-      if (i >= tries - 1) throw e;
-      await sleep(delayMs);
-    }
-  }
-}
-
 async function apiGet(path) {
-  const r = await fetchRetry(`${API_BASE}${path}`, { headers: { ...authHeaders() } });
-  const data = await parseResponse(r);
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${data?.error || data?.message || String(data)}`);
-  return data;
+  const r = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+  const d = await parseResponse(r);
+  if (!r.ok) throw new Error(d?.error || d?.message || String(d));
+  return d;
 }
 
 async function apiPost(path, body) {
-  const r = await fetchRetry(`${API_BASE}${path}`, {
+  const r = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
-  const data = await parseResponse(r);
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${data?.error || data?.message || String(data)}`);
-  return data;
+  if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+  const d = await parseResponse(r);
+  if (!r.ok) throw new Error(d?.error || d?.message || String(d));
+  return d;
 }
 
-async function pollTask(upid, label = "Probíhá…", intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
-  const start = Date.now();
-  while (true) {
-    const r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
-    const t = r.task || {};
-    const state =
-      r.state || (t.status === "stopped" ? (t.exitstatus === "OK" ? "done" : "error") : "running");
+function setStatus(msg) {
+  const el = document.getElementById("status");
+  if (el) el.textContent = msg;
+}
 
-    setOut(`${label} (${state})`);
+function updateStats(vms) {
+  const total = vms.length;
+  const running = vms.filter(v => v.status === "running").length;
+  const stopped = total - running;
 
-    if (state !== "running") return r;
-    if (Date.now() - start > timeoutMs) throw new Error("Task timeout");
-    await sleep(intervalMs);
-  }
+  const a = document.getElementById("statTotal");
+  const b = document.getElementById("statRunning");
+  const c = document.getElementById("statStopped");
+
+  if (a) a.textContent = String(total);
+  if (b) b.textContent = String(running);
+  if (c) c.textContent = String(stopped);
 }
 
 async function refreshVmList() {
@@ -87,11 +59,13 @@ async function refreshVmList() {
   if (!out) return;
 
   const data = await apiGet("/api/vm/list");
-  out.innerHTML = "";
+  const vms = data?.vms || [];
 
-  const vms = data.vms || [];
+  updateStats(vms);
+
+  out.innerHTML = "";
   if (!vms.length) {
-    out.textContent = "Žádné VM v poolu mojevm.";
+    out.textContent = "Žádné VM v tomto poolu.";
     return;
   }
 
@@ -100,7 +74,7 @@ async function refreshVmList() {
   for (const vm of vms) {
     const row = document.createElement("div");
     row.style.padding = "10px 0";
-    row.style.borderBottom = "1px solid rgba(148, 163, 184, 0.25)";
+    row.style.borderBottom = "1px solid rgba(148,163,184,0.25)";
 
     const title = document.createElement("div");
     title.textContent = `VM ${vm.vmid} | ${vm.name} | ${vm.status}`;
@@ -120,39 +94,28 @@ async function refreshVmList() {
     const btnStart = document.createElement("button");
     btnStart.textContent = "Start";
     btnStart.className = "btn btn-sm btn-success";
-    btnStart.onclick = async () => {
-      setOut("Startuji…");
-      const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
-      if (r?.upid) await pollTask(r.upid, "Startuji…");
-      await refreshVmList();
-    };
+    btnStart.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/start`, {}); await refreshVmList(); };
 
     const btnStop = document.createElement("button");
     btnStop.textContent = "Stop";
     btnStop.className = "btn btn-sm btn-warning";
-    btnStop.onclick = async () => {
-      setOut("Zastavuji…");
-      const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-      if (r?.upid) await pollTask(r.upid, "Zastavuji…");
-      await refreshVmList();
-    };
+    btnStop.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/stop`, {}); await refreshVmList(); };
 
     actions.appendChild(btnConsole);
     actions.appendChild(btnStart);
     actions.appendChild(btnStop);
 
-    // Smazat pouze admin UI (backend musí stejně vynutit!)
+    // delete jen admin UI (backend stejně musí vynutit)
     if (role === "admin") {
       const btnDelete = document.createElement("button");
       btnDelete.textContent = "Smazat";
       btnDelete.className = "btn btn-sm btn-danger";
       btnDelete.onclick = async () => {
         if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
-        setOut("Mažu…");
-        const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: { ...authHeaders() } });
+        const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+        if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
         const d = await parseResponse(r);
-        if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
-        if (d?.upid) await pollTask(d.upid, "Mažu…");
+        if (!r.ok) throw new Error(d?.error || String(d));
         await refreshVmList();
       };
       actions.appendChild(btnDelete);
@@ -166,21 +129,15 @@ async function refreshVmList() {
 document.addEventListener("DOMContentLoaded", () => {
   const isCreate = document.body?.dataset?.page === "create";
 
-  const btnTest = document.getElementById("btnTest");
-  const btnCreate = document.getElementById("btnCreate");
-
-  if (btnTest) {
-    btnTest.addEventListener("click", async () => {
-      try {
-        setOut("Testuji backend…");
-        const data = await apiGet("/api/test");
-        setOut(data?.ok ? "Backend OK." : data);
-      } catch (e) {
-        setOut({ ok: false, error: String(e.message || e) });
-      }
-    });
+  // listujeme jen na home/myvm
+  if (!isCreate) {
+    const btnRefresh = document.getElementById("refreshBtn");
+    if (btnRefresh) btnRefresh.addEventListener("click", refreshVmList);
+    refreshVmList().catch(e => setStatus(String(e.message || e)));
   }
 
+  // create page: jen vytvoření (žádný výstup seznamu)
+  const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
       try {
@@ -189,28 +146,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const cores = Number(document.getElementById("cores")?.value || 2);
         const memory = Number(document.getElementById("memory")?.value || 2048);
 
-        if (!name) return setOut("Chybí název VM.");
-        if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut("cores musí být 1–8.");
-        if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut("RAM musí být 512–16384 MB.");
+        if (!name) return setStatus("Chybí název VM.");
+        if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setStatus("CPU musí být celé 1–8.");
+        if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setStatus("RAM musí být 512–16384 MB.");
 
-        setOut("Odesílám požadavek…");
-        const data = await apiPost("/api/vm/create", { name, template, cores, memory });
+        setStatus("Vytvářím…");
+        await apiPost("/api/vm/create", { name, template, cores, memory });
 
-        if (data?.upidClone) await pollTask(data.upidClone, "Klonuji…");
-        if (data?.upidStart) await pollTask(data.upidStart, "Spouštím…");
-
-        // po vytvoření přesměruj na Moje VM (tam uvidíš výsledky)
-        setOut("Hotovo. Přesměrovávám na Moje VM…");
-        setTimeout(() => { window.location.href = "myvm.html"; }, 700);
-
+        setStatus("Hotovo. Přesměrovávám na Moje VM…");
+        setTimeout(() => { window.location.href = "myvm.html"; }, 600);
       } catch (e) {
-        setOut(String(e.message || e));
+        setStatus(String(e.message || e));
       }
     });
-  }
-
-  // seznam VM jen na stránkách, kde má být (home/myvm), ne na create
-  if (!isCreate) {
-    refreshVmList().catch(e => setOut({ ok: false, error: String(e.message || e) }));
   }
 });
