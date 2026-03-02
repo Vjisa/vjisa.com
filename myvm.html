@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="theme-dark">
+<body class="theme-light">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -36,77 +36,65 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Moje VM</h1>
-          <p class="page-subtitle">Seznam VM v poolu + výběr OS šablony pro vytvoření.</p>
+          <p class="page-subtitle">Vytvoření nové VM + seznam VM v poolu.</p>
         </div>
         <div class="page-actions">
-          <a class="btn btn-primary" href="vm.html">Vytvořit VM</a>
           <button class="btn btn-light btn-icon" type="button" onclick="location.reload()" title="Obnovit">↻</button>
         </div>
       </div>
 
+      <!-- NAHOŘE: jen 1 tlačítko -->
       <div class="card mb-3">
         <div class="card-body p-4">
-          <h2 class="h5 mb-3">VM v poolu</h2>
-          <div id="out" class="text-muted">Načítám…</div>
-          <div class="text-muted small mt-2">
-            (Tuhle část aktuálně vykresluje `app.js` přes `/api/vm/list`.) :contentReference[oaicite:4]{index=4}
-          </div>
+          <h2 class="h5 mb-2">Nová VM</h2>
+          <p class="text-muted small mb-3">Parametry a OS vybereš na stránce vytvoření.</p>
+          <a class="btn btn-primary" href="vm.html">+ Vytvořit VM</a>
         </div>
       </div>
 
+      <!-- DOLE: seznam -->
       <div class="card">
         <div class="card-body p-4">
-          <h2 class="h5 mb-3">OS šablony</h2>
-
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <div class="card h-100">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <div style="font-size:1.4rem;">🐧</div>
-                    <div class="fw-semibold">Ubuntu Server</div>
-                  </div>
-                  <div class="text-muted small mb-3">Doporučené pro běžné Linux VM.</div>
-                  <a class="btn btn-primary w-100" href="vm.html?template=ubuntu">Vytvořit Ubuntu VM</a>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-12 col-md-4">
-              <div class="card h-100">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <div style="font-size:1.4rem;">🧰</div>
-                    <div class="fw-semibold">Debian</div>
-                  </div>
-                  <div class="text-muted small mb-3">Minimalistické, stabilní, dobré pro server služby.</div>
-                  <a class="btn btn-primary w-100" href="vm.html?template=debian">Vytvořit Debian VM</a>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-12 col-md-4">
-              <div class="card h-100">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <div style="font-size:1.4rem;">🪟</div>
-                    <div class="fw-semibold">Windows</div>
-                  </div>
-                  <div class="text-muted small mb-3">Pro testy a klientské prostředí.</div>
-                  <a class="btn btn-primary w-100" href="vm.html?template=windows">Vytvořit Windows VM</a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="text-muted small mt-3">
-            Později z formuláře ve `vm.html` můžeš OS výběr odstranit a nechat ho jen tady (nižší duplicita).
-          </div>
+          <h2 class="h5 mb-3">VM v poolu</h2>
+          <div id="out" class="text-muted">Načítám…</div>
         </div>
       </div>
     </main>
   </div>
 
+  <!-- app.js vykresluje seznam do #out -->
   <script src="app.js" defer></script>
+
+  <!-- Zkrášlení tlačítek (bez zásahu do app.js) -->
+  <script>
+    function styleVmButtons() {
+      const out = document.getElementById("out");
+      if (!out) return;
+
+      out.querySelectorAll("button").forEach(btn => {
+        const t = (btn.textContent || "").trim().toLowerCase();
+        btn.classList.add("btn", "btn-sm");
+
+        if (t === "konzole") {
+          btn.classList.add("btn-outline-primary");
+        } else if (t === "start") {
+          btn.classList.add("btn-success");
+        } else if (t === "stop") {
+          btn.classList.add("btn-warning");
+        } else if (t === "smazat") {
+          btn.classList.add("btn-danger");
+        } else {
+          btn.classList.add("btn-outline-secondary");
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      styleVmButtons();
+      const out = document.getElementById("out");
+      if (!out) return;
+      new MutationObserver(styleVmButtons).observe(out, { childList: true, subtree: true });
+    });
+  </script>
 </body>
 </html>
