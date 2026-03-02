@@ -553,3 +553,52 @@ body {
 body.theme-light {
   background: radial-gradient(circle at top, #ffffff 0, #f1f5f9 55%, #dbeafe 100%);
 }
+
+/* ===== THEME FIXES (append) ===== */
+
+/* default: když není nic nastavené */
+body { color: #0f172a; }
+
+/* LIGHT */
+body.theme-light {
+  background: radial-gradient(circle at top, #ffffff 0, #f1f5f9 55%, #dbeafe 100%);
+  color: #0f172a;
+}
+
+/* DARK */
+body.theme-dark {
+  background: radial-gradient(circle at top, #0b1220 0, #020617 65%, #000000 100%);
+  color: #e2e8f0;
+}
+
+/* karty/sekce – aby "okna" byla tmavá v dark režimu */
+.theme-dark .card,
+.theme-dark .main-content,
+.theme-dark .sidebar {
+  background-color: rgba(2, 6, 23, 0.65) !important;
+  color: #e2e8f0;
+}
+
+/* formuláře – tmavé inputy/selecty v dark režimu */
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+  background-color: #0b1220 !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+.theme-dark .form-control::placeholder,
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: rgba(226, 232, 240, 0.55) !important;
+}
+
+/* jemnější linky */
+.theme-dark hr,
+.theme-dark .dropdown-divider {
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
