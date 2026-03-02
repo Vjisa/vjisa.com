@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="theme-light" data-page="create">
+<body class="theme-light" data-require-auth="1" data-page="create">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -73,19 +73,18 @@
                 </div>
 
                 <div class="col-12 col-md-6">
-                  <label class="form-label" for="memory">RAM (MB)</label>
-                  <!-- psát přesně nebo vybrat návrh -->
-                  <input class="form-control" id="memory"
-                         type="number" min="512" max="16384" step="1" inputmode="numeric"
-                         list="ramOptions" value="2048" />
-                  <datalist id="ramOptions">
-                    <option value="512"></option>
-                    <option value="1024"></option>
-                    <option value="2048"></option>
-                    <option value="4096"></option>
-                    <option value="8192"></option>
-                    <option value="16384"></option>
-                  </datalist>
+                  <<label class="form-label" for="memory">RAM (MB)</label>
+<input class="form-control" id="memory"
+       type="number" min="512" max="16384" step="1" inputmode="numeric"
+       list="ramOptions" value="2048" />
+<datalist id="ramOptions">
+  <option value="512"></option>
+  <option value="1024"></option>
+  <option value="2048"></option>
+  <option value="4096"></option>
+  <option value="8192"></option>
+  <option value="16384"></option>
+</datalist>
                 </div>
               </div>
 
@@ -102,7 +101,7 @@
       </div>
 
       <!-- skrytý #out jen kvůli kompatibilitě (neuvidíš ho) -->
-      <div id="out" style="display:none"></div>
+      
     </main>
   </div>
 
