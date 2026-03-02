@@ -27,7 +27,8 @@
         <a class="sidebar-link" href="settings.html"><span class="icon">⚙️</span> Nastavení</a>
       </nav>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer d-flex gap-2 align-items-center">
+        <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
         <a class="sidebar-link" href="index.html"><span class="icon">🚪</span> Odhlásit se</a>
       </div>
     </aside>
@@ -36,7 +37,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Vytvoření VM</h1>
-          <p class="page-subtitle">Vyplň parametry a odešli požadavek na backend.</p>
+          <p class="page-subtitle">Vyplň parametry a vytvoř VM.</p>
         </div>
         <div class="page-actions">
           <a class="btn btn-light btn-icon" href="myvm.html" title="Zpět">←</a>
@@ -45,8 +46,7 @@
       </div>
 
       <div class="row g-3">
-        <!-- FORM -->
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-7">
           <div class="card">
             <div class="card-body p-4">
               <h2 class="h5 mb-3">Parametry</h2>
@@ -68,17 +68,16 @@
               <div class="row g-3">
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="cores">CPU (cores)</label>
-                  <input class="form-control" id="cores" type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
+                  <input class="form-control" id="cores"
+                         type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
                 </div>
 
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="memory">RAM (MB)</label>
-
-                  <!-- 1 prvek: můžeš vybrat návrh i napsat přesné číslo -->
+                  <!-- psát přesně nebo vybrat návrh -->
                   <input class="form-control" id="memory"
                          type="number" min="512" max="16384" step="1" inputmode="numeric"
                          list="ramOptions" value="2048" />
-
                   <datalist id="ramOptions">
                     <option value="512"></option>
                     <option value="1024"></option>
@@ -94,26 +93,24 @@
                 <button class="btn btn-light" id="btnTest" type="button">Test backendu</button>
                 <button class="btn btn-primary" id="btnCreate" type="button">Vytvořit VM</button>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- OUTPUT -->
-        <div class="col-12 col-lg-6">
-          <div class="card">
-            <div class="card-body p-4">
-              <h2 class="h5 mb-3">Výstup</h2>
-              <div id="out" class="text-muted">Připraveno.</div>
+              <!-- jen krátký status (ne seznam VM, žádné logy) -->
+              <div class="text-muted small mt-3" id="status">Připraveno.</div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- skrytý #out jen kvůli kompatibilitě (neuvidíš ho) -->
+      <div id="out" style="display:none"></div>
     </main>
   </div>
 
-  <!-- URL template + tvrdá kontrola cores 1–8 celé -->
+  <script src="auth.js" defer></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // template z URL: vm.html?template=debian
       const p = new URLSearchParams(location.search);
       const t = (p.get("template") || "").trim();
       if (t) {
@@ -121,6 +118,7 @@
         if (sel) for (const opt of sel.options) if (opt.value === t) sel.value = t;
       }
 
+      // cores: jen celé 1–8
       const cores = document.getElementById("cores");
       if (cores) {
         cores.addEventListener("input", () => {
