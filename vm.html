@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="theme-light">
+<body class="theme-light" data-page="create">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -73,14 +73,20 @@
 
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="memory">RAM (MB)</label>
-                  <select class="form-select" id="memory">
-                    <option value="512">512</option>
-                    <option value="1024">1024</option>
-                    <option value="2048" selected>2048</option>
-                    <option value="4096">4096</option>
-                    <option value="8192">8192</option>
-                    <option value="16384">16384</option>
-                  </select>
+
+                  <!-- 1 prvek: můžeš vybrat návrh i napsat přesné číslo -->
+                  <input class="form-control" id="memory"
+                         type="number" min="512" max="16384" step="1" inputmode="numeric"
+                         list="ramOptions" value="2048" />
+
+                  <datalist id="ramOptions">
+                    <option value="512"></option>
+                    <option value="1024"></option>
+                    <option value="2048"></option>
+                    <option value="4096"></option>
+                    <option value="8192"></option>
+                    <option value="16384"></option>
+                  </datalist>
                 </div>
               </div>
 
@@ -92,11 +98,11 @@
           </div>
         </div>
 
-        <!-- OUTPUT + LIST -->
+        <!-- OUTPUT -->
         <div class="col-12 col-lg-6">
           <div class="card">
             <div class="card-body p-4">
-              <h2 class="h5 mb-3">Výstup a seznam VM</h2>
+              <h2 class="h5 mb-3">Výstup</h2>
               <div id="out" class="text-muted">Připraveno.</div>
             </div>
           </div>
@@ -105,22 +111,16 @@
     </main>
   </div>
 
-  <!-- Předvýběr šablony + tvrdá kontrola cores 1–8 celé -->
+  <!-- URL template + tvrdá kontrola cores 1–8 celé -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // template z URL: vm.html?template=debian
       const p = new URLSearchParams(location.search);
       const t = (p.get("template") || "").trim();
       if (t) {
         const sel = document.getElementById("template");
-        if (sel) {
-          for (const opt of sel.options) {
-            if (opt.value === t) sel.value = t;
-          }
-        }
+        if (sel) for (const opt of sel.options) if (opt.value === t) sel.value = t;
       }
 
-      // cores: jen celé 1–8
       const cores = document.getElementById("cores");
       if (cores) {
         cores.addEventListener("input", () => {
@@ -136,37 +136,5 @@
   </script>
 
   <script src="app.js" defer></script>
-
-  <!-- Zkrášlení tlačítek seznamu VM (bez zásahu do app.js) -->
-  <script>
-    function styleVmButtons() {
-      const out = document.getElementById("out");
-      if (!out) return;
-
-      out.querySelectorAll("button").forEach(btn => {
-        const t = (btn.textContent || "").trim().toLowerCase();
-        btn.classList.add("btn", "btn-sm");
-
-        if (t === "konzole") {
-          btn.classList.add("btn-outline-primary");
-        } else if (t === "start") {
-          btn.classList.add("btn-success");
-        } else if (t === "stop") {
-          btn.classList.add("btn-warning");
-        } else if (t === "smazat") {
-          btn.classList.add("btn-danger");
-        } else {
-          btn.classList.add("btn-outline-secondary");
-        }
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      styleVmButtons();
-      const out = document.getElementById("out");
-      if (!out) return;
-      new MutationObserver(styleVmButtons).observe(out, { childList: true, subtree: true });
-    });
-  </script>
 </body>
 </html>
