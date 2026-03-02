@@ -1,5 +1,5 @@
 // app.js
-const API_BASE = "https://api.jisavl22.fun";
+var API_BASE = window.API_BASE || (window.API_BASE = "https://api.jisavl22.fun");
 
 function getRole() {
   return localStorage.getItem("role") || "user";
