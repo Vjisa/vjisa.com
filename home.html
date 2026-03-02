@@ -289,13 +289,9 @@
       const createVmModalEl = document.getElementById("createVmModal");
       const createVmModal = new bootstrap.Modal(createVmModalEl);
 
-      createVmBtn.addEventListener("click", function() {
-        createVmForm.reset();
-        document.getElementById("vmCpu").value = 2;
-        document.getElementById("vmRam").value = 4;
-        document.getElementById("vmDisk").value = 64;
-        createVmModal.show();
-      });
+      createVmBtn.addEventListener("click", () => {
+  window.location.href = "vm.html";
+});
 
       createVmSaveBtn.addEventListener("click", function() {
         if (!createVmForm.reportValidity()) {
