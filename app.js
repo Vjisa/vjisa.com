@@ -23,11 +23,11 @@ function setOut(v) {
 
 async function parseResponse(r) {
   const txt = await r.text();
-  try {
-    return JSON.parse(txt);
-  } catch {
-    return txt;
-  }
+  try { return JSON.parse(txt); } catch { return txt; }
+}
+
+function sleep(ms) {
+  return new Promise((res) => setTimeout(res, ms));
 }
 
 async function fetchRetry(url, options, tries = 4, delayMs = 400) {
@@ -64,20 +64,14 @@ async function apiPost(path, body) {
   return data;
 }
 
-function sleep(ms) {
-  return new Promise((res) => setTimeout(res, ms));
-}
-
 async function pollTask(upid, label = "Probíhá…", intervalMs = 2000, timeoutMs = 10 * 60 * 1000) {
   const start = Date.now();
 
   while (true) {
     let r;
-
     try {
       r = await apiGet(`/api/task/status?upid=${encodeURIComponent(upid)}`);
     } catch (e) {
-      // krátký výpadek backendu/nginx při restartu -> retry
       const msg = String(e.message || e);
       if (/HTTP (502|503|504)/.test(msg) && Date.now() - start < timeoutMs) {
         await sleep(intervalMs);
@@ -91,9 +85,7 @@ async function pollTask(upid, label = "Probíhá…", intervalMs = 2000, timeout
       r.state ||
       (t.status === "stopped" ? (t.exitstatus === "OK" ? "done" : "error") : "running");
 
-    setOut(
-      `${label}\nState: ${state}\nTask: ${t.type || ""}\nExit: ${r.exitstatus || t.exitstatus || ""}`
-    );
+    setOut(`${label}\nState: ${state}\nTask: ${t.type || ""}\nExit: ${r.exitstatus || t.exitstatus || ""}`);
 
     if (state !== "running") return r;
     if (Date.now() - start > timeoutMs) throw new Error("Task timeout");
@@ -102,12 +94,91 @@ async function pollTask(upid, label = "Probíhá…", intervalMs = 2000, timeout
   }
 }
 
+async function refreshVmList() {
+  const out = document.getElementById("out");
+  if (!out) return;
+
+  const data = await apiGet("/api/vm/list");
+  out.innerHTML = "";
+
+  const vms = data.vms || [];
+  if (!vms.length) {
+    out.textContent = "Žádné VM v poolu mojevm.";
+    return;
+  }
+
+  for (const vm of vms) {
+    const row = document.createElement("div");
+    row.style.padding = "10px 0";
+    row.style.borderBottom = "1px solid rgba(148, 163, 184, 0.25)";
+
+    const title = document.createElement("div");
+    title.textContent = `VM ${vm.vmid} | ${vm.name} | ${vm.status}`;
+    row.appendChild(title);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+    actions.style.marginTop = "8px";
+    actions.style.flexWrap = "wrap";
+
+    const btnConsole = document.createElement("button");
+    btnConsole.textContent = "Konzole";
+    btnConsole.className = "btn btn-sm btn-outline-primary";
+    btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+
+    const btnStart = document.createElement("button");
+    btnStart.textContent = "Start";
+    btnStart.className = "btn btn-sm btn-success";
+    btnStart.onclick = async () => {
+      setOut("Startuji…");
+      const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
+      setOut(r);
+      if (r?.upid) await pollTask(r.upid, "Startuji…");
+      await refreshVmList();
+    };
+
+    const btnStop = document.createElement("button");
+    btnStop.textContent = "Stop";
+    btnStop.className = "btn btn-sm btn-warning";
+    btnStop.onclick = async () => {
+      setOut("Zastavuji…");
+      const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+      setOut(r);
+      if (r?.upid) await pollTask(r.upid, "Zastavuji…");
+      await refreshVmList();
+    };
+
+    const btnDelete = document.createElement("button");
+    btnDelete.textContent = "Smazat";
+    btnDelete.className = "btn btn-sm btn-danger";
+    btnDelete.onclick = async () => {
+      if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
+      setOut("Mažu…");
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE" });
+      const d = await parseResponse(r);
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
+      setOut(d);
+      if (d?.upid) await pollTask(d.upid, "Mažu…");
+      await refreshVmList();
+    };
+
+    actions.appendChild(btnConsole);
+    actions.appendChild(btnStart);
+    actions.appendChild(btnStop);
+    actions.appendChild(btnDelete);
+
+    row.appendChild(actions);
+    out.appendChild(row);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  const DISABLE_LIST = document.body?.dataset?.page === "create";
+
   const btnTest = document.getElementById("btnTest");
   const btnCreate = document.getElementById("btnCreate");
 
-
-  
   if (btnTest) {
     btnTest.addEventListener("click", async () => {
       try {
@@ -131,13 +202,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const memory = Number(document.getElementById("memory")?.value || 2048);
 
         if (!name) return setOut({ ok: false, error: "Chybí název VM." });
-        if (!Number.isInteger(cores) || cores < 1 || cores > 8)
-          return setOut({ ok: false, error: "cores musí být 1–8." });
-        if (!Number.isInteger(memory) || memory < 512 || memory > 16384)
-          return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
+        if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setOut({ ok: false, error: "cores musí být 1–8." });
+        if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setOut({ ok: false, error: "memory musí být 512–16384 MB." });
 
         storageKey = `create:${name}`;
-
         let requestId = localStorage.getItem(storageKey);
         if (!requestId) {
           requestId = crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
@@ -146,36 +214,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setOut("Odesílám create…");
         const data = await apiPost("/api/vm/create", { name, template, cores, memory, requestId });
-
         setOut({ step: "create-accepted", ...data });
 
         const rClone = await pollTask(data.upidClone, "Klonuji…");
-        if (rClone.exitstatus && rClone.exitstatus !== "OK")
-          throw new Error(`Clone failed: ${rClone.exitstatus}`);
+        if (rClone.exitstatus && rClone.exitstatus !== "OK") throw new Error(`Clone failed: ${rClone.exitstatus}`);
 
         if (data.upidStart) {
           const rStart = await pollTask(data.upidStart, "Spouštím…");
-          if (rStart.exitstatus && rStart.exitstatus !== "OK")
-            throw new Error(`Start failed: ${rStart.exitstatus}`);
+          if (rStart.exitstatus && rStart.exitstatus !== "OK") throw new Error(`Start failed: ${rStart.exitstatus}`);
         }
 
         if (storageKey) localStorage.removeItem(storageKey);
-        setOut({ ok: true, vmid: data.vmid, message: "Hotovo", console: `https://api.jisavl22.fun/console?vmid=${data.vmid}` });
-const consoleUrl = `https://api.jisavl22.fun/console?vmid=${data.vmid}`;
 
-const links = document.getElementById("logLinks");
-if (links) {
-  links.innerHTML = "";
-  const a = document.createElement("a");
-  a.href = consoleUrl;
-  a.target = "_blank";
-  a.rel = "noopener";
-  a.textContent = "Otevřít konzoli";
-  links.appendChild(a);
-}
+        const consoleUrl = `https://api.jisavl22.fun/console?vmid=${data.vmid}`;
+        setOut({ ok: true, vmid: data.vmid, message: "Hotovo", console: consoleUrl });
 
-await refreshVmList();
-       window.open(`https://api.jisavl22.fun/console?vmid=${data.vmid}`, "_blank");
+        const links = document.getElementById("logLinks");
+        if (links) {
+          links.innerHTML = "";
+          const a = document.createElement("a");
+          a.href = consoleUrl;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = "Otevřít konzoli";
+          links.appendChild(a);
+        }
+
+        // Na create stránce seznam záměrně nevykreslujeme
+        if (!DISABLE_LIST) await refreshVmList();
+
+        window.open(consoleUrl, "_blank");
       } catch (e) {
         if (storageKey) localStorage.removeItem(storageKey);
         setOut({ ok: false, error: String(e.message || e) });
@@ -183,80 +251,8 @@ await refreshVmList();
     });
   }
 
-  async function refreshVmList() {
-  const data = await apiGet("/api/vm/list");
-  const out = document.getElementById("out");
-  out.innerHTML = "";
-
-  const vms = data.vms || [];
-  if (!vms.length) {
-    out.textContent = "Žádné VM v poolu mojevm.";
-    return;
+  // Seznam VM vykresluj jen na stránkách, kde to dává smysl (myvm.html)
+  if (!DISABLE_LIST) {
+    refreshVmList().catch((e) => setOut({ ok: false, error: String(e.message || e) }));
   }
-
-  for (const vm of vms) {
-    const row = document.createElement("div");
-    row.style.padding = "8px";
-    row.style.borderBottom = "1px solid #333";
-
-    const title = document.createElement("div");
-    title.textContent = `VM ${vm.vmid} | ${vm.name} | ${vm.status}`;
-    row.appendChild(title);
-
-    const actions = document.createElement("div");
-    actions.style.display = "flex";
-    actions.style.gap = "8px";
-    actions.style.marginTop = "6px";
-
-    const btnConsole = document.createElement("button");
-    btnConsole.textContent = "Konzole";
-    btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
-
-    const btnStart = document.createElement("button");
-    btnStart.textContent = "Start";
-    btnStart.onclick = async () => {
-  setOut("Startuji…");
-  const r = await apiPost(`/api/vm/${vm.vmid}/start`, {});
-  setOut(r);
-  if (r?.upid) await pollTask(r.upid, "Startuji…");
-  await refreshVmList();
-};
-
-    const btnStop = document.createElement("button");
-    btnStop.textContent = "Stop";
-    btnStop.onclick = async () => {
-  setOut("Zastavuji…");
-  const r = await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-  setOut(r);
-  if (r?.upid) await pollTask(r.upid, "Zastavuji…");
-  await refreshVmList();
-};
-
-    const btnDelete = document.createElement("button");
-    btnDelete.textContent = "Smazat";
-    btnDelete.onclick = async () => {
-  if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
-
-  setOut("Mažu…");
-  const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE" });
-  const d = await parseResponse(r);
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${d?.error || String(d)}`);
-
-  setOut(d);
-  if (d?.upid) await pollTask(d.upid, "Mažu…");
-  await refreshVmList();
-};
-
-    actions.appendChild(btnConsole);
-    actions.appendChild(btnStart);
-    actions.appendChild(btnStop);
-    actions.appendChild(btnDelete);
-
-    row.appendChild(actions);
-    out.appendChild(row);
-  }
-}
-
-refreshVmList().catch(e => setOut({ ok: false, error: String(e.message || e) }));
-  
 });
