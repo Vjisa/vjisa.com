@@ -35,9 +35,18 @@ async function apiPost(path, body) {
   return d;
 }
 
-function setStatus(msg) {
+function setStatus(msg, type = "info") {
   const el = document.getElementById("status");
-  if (el) el.textContent = msg;
+  if (!el) return;
+
+  el.textContent = msg;
+
+  // reset
+  el.classList.remove("text-danger", "text-success", "text-muted");
+  // barvy
+  if (type === "error") el.classList.add("text-danger");
+  else if (type === "success") el.classList.add("text-success");
+  else el.classList.add("text-muted");
 }
 
 function updateStats(vms) {
