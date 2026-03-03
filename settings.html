@@ -42,7 +42,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Nastavení</h1>
-          <p class="page-subtitle">Motiv a informace o účtu (z backendu).</p>
+          <p class="page-subtitle">Základní informace o účtu a lokální data.</p>
         </div>
       </div>
 
@@ -66,34 +66,11 @@
         </div>
       </div>
 
-      <div class="card mb-3">
-        <div class="card-body p-4">
-          <h2 class="h5 mb-3">Vzhled</h2>
-
-          <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-5">
-              <label class="form-label" for="themeSelect">Barevné schéma</label>
-              <select class="form-select" id="themeSelect">
-                <option value="light">Světlý motiv</option>
-                <option value="dark">Tmavý motiv</option>
-              </select>
-              <div class="text-muted small mt-2">Ukládá se do localStorage a platí pro všechny stránky.</div>
-            </div>
-
-            <div class="col-12 col-md-7 d-flex gap-2">
-              <button class="btn btn-primary" id="saveTheme" type="button">Uložit</button>
-              <button class="btn btn-outline-danger" id="clearLocal" type="button">Odstranit lokální data</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="card-body p-4">
-          <h2 class="h5 mb-2">O aplikaci</h2>
-          <div class="text-muted">
-            Frontend pro správu VM na Proxmoxu. Přístup je omezen rolemi a pooly (admin vidí vše, user jen svůj pool).
-          </div>
+          <h2 class="h5 mb-3">Lokální data</h2>
+          <p class="text-muted mb-3">Smaže token/motiv a odhlásí tě.</p>
+          <button class="btn btn-outline-danger" id="clearLocal" type="button">Odstranit lokální data</button>
         </div>
       </div>
     </main>
@@ -102,15 +79,6 @@
   <script src="auth.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const sel = document.getElementById("themeSelect");
-      const cur = localStorage.getItem("theme") || "light";
-      sel.value = cur;
-
-      document.getElementById("saveTheme").addEventListener("click", () => {
-        localStorage.setItem("theme", sel.value);
-        window.__auth?.applyTheme?.();
-      });
-
       document.getElementById("clearLocal").addEventListener("click", () => {
         localStorage.clear();
         window.location.href = "index.html";
