@@ -678,3 +678,79 @@ body.theme-dark {
 .sidebar .p-3.small div:nth-child(2) {
   display: none !important;
 }
+
+/* ===== Admin dashboard: bubliny + stavové tečky ===== */
+.vm-bubble {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 18px;
+  overflow: hidden;
+  margin: 10px 0;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.theme-dark .vm-bubble {
+  background: rgba(2, 6, 23, 0.55);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.vm-bubble summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vm-bubble summary::-webkit-details-marker {
+  display: none;
+}
+
+.vm-bubble-content {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.vm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.vm-row:last-child {
+  border-bottom: none;
+}
+
+.vm-row-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vm-row-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  flex: 0 0 auto;
+}
+
+.vm-dot[data-state="running"] { background: #22c55e; } /* zelená */
+.vm-dot:not([data-state="running"]) { background: #ef4444; } /* červená */
+
+.vm-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
