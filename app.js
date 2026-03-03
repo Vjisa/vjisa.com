@@ -61,6 +61,76 @@ function updateStats(vms) {
   if (c) c.textContent = String(stopped);
 }
 
+function formatShownId(vmid, role) {
+  const id = Number(vmid);
+  return (role === "admin") ? id : (id % 100);
+}
+
+function makeDot(status) {
+  const dot = document.createElement("span");
+  dot.className = "vm-dot";
+  dot.dataset.state = status || "";
+  return dot;
+}
+
+function makeVmRow(vm, role) {
+  const row = document.createElement("div");
+  row.className = "vm-row";
+
+  const left = document.createElement("div");
+  left.className = "vm-row-left";
+
+  const dot = makeDot(vm.status);
+  left.appendChild(dot);
+
+  const title = document.createElement("div");
+  title.className = "vm-row-title";
+  const shownId = formatShownId(vm.vmid, role);
+  title.textContent = `VM ${shownId} | ${vm.name} | ${vm.status}`;
+  left.appendChild(title);
+
+  const actions = document.createElement("div");
+  actions.className = "vm-actions";
+
+  const btnConsole = document.createElement("button");
+  btnConsole.textContent = "Konzole";
+  btnConsole.className = "btn btn-sm btn-outline-primary";
+  btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+
+  const btnStart = document.createElement("button");
+  btnStart.textContent = "Start";
+  btnStart.className = "btn btn-sm btn-success";
+  btnStart.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/start`, {}); await refreshVmList(); };
+
+  const btnStop = document.createElement("button");
+  btnStop.textContent = "Stop";
+  btnStop.className = "btn btn-sm btn-warning";
+  btnStop.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/stop`, {}); await refreshVmList(); };
+
+  actions.appendChild(btnConsole);
+  actions.appendChild(btnStart);
+  actions.appendChild(btnStop);
+
+  if (role === "admin") {
+    const btnDelete = document.createElement("button");
+    btnDelete.textContent = "Smazat";
+    btnDelete.className = "btn btn-sm btn-danger";
+    btnDelete.onclick = async () => {
+      if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+      const d = await parseResponse(r);
+      if (!r.ok) throw new Error(d?.error || String(d));
+      await refreshVmList();
+    };
+    actions.appendChild(btnDelete);
+  }
+
+  row.appendChild(left);
+  row.appendChild(actions);
+  return row;
+}
+
 async function refreshVmList() {
   const out = document.getElementById("out");
   if (!out) return;
@@ -69,12 +139,66 @@ async function refreshVmList() {
   const vms = data?.vms || [];
 
   updateStats(vms);
-
   out.innerHTML = "";
+
   if (!vms.length) {
     out.textContent = "Žádné VM v tomto poolu.";
     return;
   }
+
+  const role = getRole();
+  const isDashboard = document.body?.dataset?.page === "dashboard";
+
+  // Admin bubliny jen na dashboardu a jen pokud backend vrací pool
+  const hasPool = vms.some(v => v.pool !== undefined && v.pool !== null);
+  if (role === "admin" && isDashboard && hasPool) {
+    // rozdělení podle poolu
+    const map = new Map();
+    for (const vm of vms) {
+      const p = vm.pool || "neznamy";
+      if (!map.has(p)) map.set(p, []);
+      map.get(p).push(vm);
+    }
+
+    // admin pool vždy nahoře (mojevm)
+    const adminPool = "mojevm";
+    const adminVms = map.get(adminPool) || [];
+    if (adminVms.length) {
+      const h = document.createElement("div");
+      h.className = "mb-2 fw-semibold";
+      h.textContent = "Moje VM (admin)";
+      out.appendChild(h);
+
+      for (const vm of adminVms) out.appendChild(makeVmRow(vm, role));
+    }
+
+    // bubliny pro user pooly
+    const pools = [...map.keys()].filter(p => p !== adminPool).sort();
+    for (const p of pools) {
+      const group = map.get(p) || [];
+
+      const details = document.createElement("details");
+      details.className = "vm-bubble";
+
+      const summary = document.createElement("summary");
+      summary.textContent = `${p} (${group.length})`;
+
+      const content = document.createElement("div");
+      content.className = "vm-bubble-content";
+
+      for (const vm of group) content.appendChild(makeVmRow(vm, role));
+
+      details.appendChild(summary);
+      details.appendChild(content);
+      out.appendChild(details);
+    }
+
+    return;
+  }
+
+  // default (user nebo admin mimo dashboard): běžný seznam
+  for (const vm of vms) out.appendChild(makeVmRow(vm, role));
+}
 
   const role = getRole();
 
