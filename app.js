@@ -165,7 +165,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const template = (document.getElementById("template")?.value || "ubuntu").trim();
     const cores = Number(document.getElementById("cores")?.value || 2);
     const memory = Number(document.getElementById("memory")?.value || 2048);
-    const slot = (document.getElementById("slot")?.value || "").trim(); // pokud přidáš slot input
+    const slotRaw = (document.getElementById("slot")?.value || "").trim();
+const slot = slotRaw === "" ? null : Number(slotRaw); // pokud přidáš slot input
 
     if (!name) { setStatus("Chybí název VM.", "error"); return; }
 
