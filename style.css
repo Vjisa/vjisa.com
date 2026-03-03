@@ -659,3 +659,22 @@ body.theme-dark {
 .sidebar .p-3.small div:nth-child(2) {
   display: none !important;
 }
+
+/* Sidebar identity (levý dolní roh) – stejné jako zbytek + vždy bílé */
+.sidebar .p-3.small {
+  font-size: 0.95rem !important;     /* podobné jako nav linky */
+  font-weight: 500 !important;
+  letter-spacing: 0.1px;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.sidebar .p-3.small * {
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* skryj druhý řádek (role/pool) */
+.sidebar .p-3.small div:nth-child(2) {
+  display: none !important;
+}
