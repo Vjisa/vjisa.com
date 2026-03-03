@@ -41,9 +41,7 @@ function setStatus(msg, type = "info") {
 
   el.textContent = msg;
 
-  // reset
   el.classList.remove("text-danger", "text-success", "text-muted");
-  // barvy
   if (type === "error") el.classList.add("text-danger");
   else if (type === "success") el.classList.add("text-success");
   else el.classList.add("text-muted");
@@ -150,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
       try {
+        setStatus("Vytvářím…", "success");
         const name = (document.getElementById("name")?.value || "").trim();
         const template = (document.getElementById("template")?.value || "ubuntu").trim();
         const cores = Number(document.getElementById("cores")?.value || 2);
@@ -161,11 +160,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setStatus("Vytvářím…");
         await apiPost("/api/vm/create", { name, template, cores, memory });
-
-        setStatus("Hotovo. Přesměrovávám na Moje VM…");
+        setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
         setTimeout(() => { window.location.href = "myvm.html"; }, 600);
       } catch (e) {
-        setStatus(String(e.message || e));
+        setStatus(String(e.message || e), "error");
       }
     });
   }
