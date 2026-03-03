@@ -84,7 +84,18 @@ async function refreshVmList() {
     row.style.borderBottom = "1px solid rgba(148,163,184,0.25)";
 
     const title = document.createElement("div");
-    title.textContent = `VM ${vm.vmid} | ${vm.name} | ${vm.status}`;
+    const role = getRole(); // už to tam máš
+const shownId = (role === "admin") ? vm.vmid : (Number(vm.vmid) % 100);
+    const dot = document.createElement("span");
+dot.style.display = "inline-block";
+dot.style.width = "10px";
+dot.style.height = "10px";
+dot.style.borderRadius = "50%";
+dot.style.marginRight = "8px";
+dot.style.verticalAlign = "middle";
+dot.style.background = (vm.status === "running") ? "#22c55e" : "#ef4444";
+title.prepend(dot);
+title.textContent = `VM ${shownId} | ${vm.name} | ${vm.status}`;
     row.appendChild(title);
 
     const actions = document.createElement("div");
@@ -147,24 +158,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
-      try {
-        setStatus("Vytvářím…", "success");
-        const name = (document.getElementById("name")?.value || "").trim();
-        const template = (document.getElementById("template")?.value || "ubuntu").trim();
-        const cores = Number(document.getElementById("cores")?.value || 2);
-        const memory = Number(document.getElementById("memory")?.value || 2048);
+  try {
+    setStatus("Vytvářím…", "success");      // (1) hned na začátku
 
-        if (!name) return setStatus("Chybí název VM.");
-        if (!Number.isInteger(cores) || cores < 1 || cores > 8) return setStatus("CPU musí být celé 1–8.");
-        if (!Number.isInteger(memory) || memory < 512 || memory > 16384) return setStatus("RAM musí být 512–16384 MB.");
+    const name = (document.getElementById("name")?.value || "").trim();
+    const template = (document.getElementById("template")?.value || "ubuntu").trim();
+    const cores = Number(document.getElementById("cores")?.value || 2);
+    const memory = Number(document.getElementById("memory")?.value || 2048);
+    const slot = (document.getElementById("slot")?.value || "").trim(); // pokud přidáš slot input
 
-        setStatus("Vytvářím…");
-        await apiPost("/api/vm/create", { name, template, cores, memory });
-        setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
-        setTimeout(() => { window.location.href = "myvm.html"; }, 600);
-      } catch (e) {
-        setStatus(String(e.message || e), "error");
-      }
+    if (!name) { setStatus("Chybí název VM.", "error"); return; }
+
+    await apiPost("/api/vm/create", {
+      name, template, cores, memory,
+      slot: slot === "" ? null : Number(slot)
     });
+
+    setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");  // (2) po úspěchu
+    setTimeout(() => { window.location.href = "myvm.html"; }, 600);
+  } catch (e) {
+    setStatus(String(e.message || e), "error");  // (3) v catch
+  }
+});
   }
 });
