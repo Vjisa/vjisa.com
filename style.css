@@ -646,3 +646,16 @@ body.theme-dark {
 .theme-dark .table th {
   border-color: rgba(148,163,184,0.25) !important;
 }
+
+/* Sidebar identity – vždy bílé, ať je motiv jakýkoliv */
+.sidebar .p-3.small {
+  color: rgba(255, 255, 255, 0.90) !important;
+}
+.sidebar .p-3.small * {
+  color: rgba(255, 255, 255, 0.90) !important;
+}
+
+/* Skryj druhý řádek (role/pool) v sidebaru */
+.sidebar .p-3.small div:nth-child(2) {
+  display: none !important;
+}
