@@ -1,5 +1,11 @@
-/* app.js (dashboard bubliny + tečky + slot + barevný status) */
+/* app.js – dashboard filtry + admin bubliny + zachování otevření + status barvy + slot */
 var API_BASE = window.API_BASE || (window.API_BASE = "https://api.jisavl22.fun");
+
+const uiState = {
+  statusFilter: null, // "running" | "stopped" | null
+  poolFilter: null,   // "user1" | "user2" | "user3" | "mojevm" | null
+  openPools: new Set()
+};
 
 function getRole() {
   return localStorage.getItem("role") || "user";
@@ -49,9 +55,11 @@ function updateStats(vms) {
   const total = vms.length;
   const running = vms.filter(v => v.status === "running").length;
   const stopped = total - running;
+
   const a = document.getElementById("statTotal");
   const b = document.getElementById("statRunning");
   const c = document.getElementById("statStopped");
+
   if (a) a.textContent = String(total);
   if (b) b.textContent = String(running);
   if (c) c.textContent = String(stopped);
@@ -60,6 +68,28 @@ function updateStats(vms) {
 function shownId(vmid, role) {
   const id = Number(vmid);
   return (role === "admin") ? id : (id % 100);
+}
+
+function captureOpenBubbles() {
+  uiState.openPools = new Set(
+    [...document.querySelectorAll("details.vm-bubble[open]")].map(d => d.dataset.pool)
+  );
+}
+
+function restoreOpenBubbles() {
+  for (const d of document.querySelectorAll("details.vm-bubble")) {
+    d.open = uiState.openPools.has(d.dataset.pool);
+  }
+}
+
+function applyFilters(vms) {
+  let out = vms;
+
+  if (uiState.poolFilter) out = out.filter(v => (v.pool || "") === uiState.poolFilter);
+  if (uiState.statusFilter === "running") out = out.filter(v => v.status === "running");
+  if (uiState.statusFilter === "stopped") out = out.filter(v => v.status !== "running");
+
+  return out;
 }
 
 function makeDot(status) {
@@ -76,8 +106,7 @@ function makeVmRow(vm, role) {
   const left = document.createElement("div");
   left.className = "vm-row-left";
 
-  const dot = makeDot(vm.status);
-  left.appendChild(dot);
+  left.appendChild(makeDot(vm.status));
 
   const title = document.createElement("div");
   title.className = "vm-row-title";
@@ -126,23 +155,62 @@ function makeVmRow(vm, role) {
   return row;
 }
 
+function setCardClickable(statId, handler) {
+  const el = document.getElementById(statId);
+  if (!el) return;
+  const card = el.closest(".card");
+  if (!card) return;
+  card.style.cursor = "pointer";
+  card.addEventListener("click", handler);
+}
+
+function initDashboardFilters() {
+  // klik na statistiky: filtr stavu
+  setCardClickable("statRunning", () => {
+    uiState.statusFilter = (uiState.statusFilter === "running") ? null : "running";
+    refreshVmList();
+  });
+
+  setCardClickable("statStopped", () => {
+    uiState.statusFilter = (uiState.statusFilter === "stopped") ? null : "stopped";
+    refreshVmList();
+  });
+
+  setCardClickable("statTotal", () => {
+    uiState.statusFilter = null;
+    uiState.poolFilter = null;
+    refreshVmList();
+  });
+}
+
 async function refreshVmList() {
   const out = document.getElementById("out");
   if (!out) return;
 
-  const data = await apiGet("/api/vm/list");
-  const vms = data?.vms || [];
-  updateStats(vms);
+  captureOpenBubbles();
 
-  out.innerHTML = "";
-  if (!vms.length) {
-    out.textContent = "Žádné VM.";
-    return;
-  }
+  const data = await apiGet("/api/vm/list");
+  const vmsAll = data?.vms || [];
+
+  // statistiky vždy z plného seznamu
+  updateStats(vmsAll);
 
   const role = getRole();
   const isDashboard = document.body?.dataset?.page === "dashboard";
-  const hasPool = vms.some(v => v.pool !== undefined && v.pool !== null);
+  const isCreate = document.body?.dataset?.page === "create";
+
+  if (isCreate) return; // na create stránce nelistujeme
+
+  // filtry pro výpis
+  const vms = applyFilters(vmsAll);
+
+  out.innerHTML = "";
+  if (!vms.length) {
+    out.textContent = "Žádné VM pro zvolený filtr.";
+    return;
+  }
+
+  const hasPool = vmsAll.some(v => v.pool !== undefined && v.pool !== null);
 
   // Admin bubliny jen na dashboardu
   if (role === "admin" && isDashboard && hasPool) {
@@ -153,7 +221,7 @@ async function refreshVmList() {
       map.get(p).push(vm);
     }
 
-    // admin pool nahoře
+    // admin VM (mojevm) vždy nahoře
     const adminPool = "mojevm";
     const adminVms = map.get(adminPool) || [];
     if (adminVms.length) {
@@ -164,15 +232,27 @@ async function refreshVmList() {
       for (const vm of adminVms) out.appendChild(makeVmRow(vm, role));
     }
 
+    // user bubliny
     const pools = [...map.keys()].filter(p => p !== adminPool).sort();
     for (const p of pools) {
       const group = map.get(p) || [];
 
       const details = document.createElement("details");
       details.className = "vm-bubble";
+      details.dataset.pool = p;
 
       const summary = document.createElement("summary");
       summary.textContent = `${p} (${group.length})`;
+
+      // klik na bublinu = filtr na uživatele (toggle) + zároveň ať zůstane otevřená
+      summary.addEventListener("click", (e) => {
+        // necháme default toggle open/close
+        const next = (uiState.poolFilter === p) ? null : p;
+        uiState.poolFilter = next;
+        uiState.openPools.add(p); // ať to po refresh zůstane otevřené
+        // refresh po kliknutí (po chvíli, aby se stihl přepnout open)
+        setTimeout(refreshVmList, 0);
+      });
 
       const content = document.createElement("div");
       content.className = "vm-bubble-content";
@@ -182,24 +262,26 @@ async function refreshVmList() {
       details.appendChild(content);
       out.appendChild(details);
     }
+
+    restoreOpenBubbles();
     return;
   }
 
-  // default list
+  // default list (user / admin mimo dashboard)
   for (const vm of vms) out.appendChild(makeVmRow(vm, role));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initDashboardFilters();
+
   const isCreate = document.body?.dataset?.page === "create";
 
-  // listy jen mimo create stránku
   if (!isCreate) {
     const btnRefresh = document.getElementById("refreshBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", refreshVmList);
     refreshVmList().catch(e => setStatus(String(e.message || e), "error"));
   }
 
-  // create stránka
   const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
@@ -213,14 +295,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const slotRaw = (document.getElementById("slot")?.value || "").trim();
         const slot = slotRaw === "" ? null : Number(slotRaw);
-        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) {
-          setStatus("VMID slot musí být celé číslo 0–99.", "error");
-          return;
-        }
 
         if (!name) { setStatus("Chybí název VM.", "error"); return; }
         if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error"); return; }
         if (!Number.isInteger(memory) || memory < 512 || memory > 16384) { setStatus("RAM musí být 512–16384 MB.", "error"); return; }
+        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
 
         await apiPost("/api/vm/create", { name, template, cores, memory, slot });
 
