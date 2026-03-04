@@ -4,8 +4,8 @@ var API_BASE = window.API_BASE || (window.API_BASE = "https://api.jisavl22.fun")
 const uiState = {
   statusFilter: null, // "running" | "stopped" | null
   poolFilter: null,   // "user1" | "user2" | "user3" | "mojevm" | null
-  openPools: new Set()
-  history: [],
+  openPools: new Set(),
+  history: []
 };
 
 function pushHistory() {
