@@ -52,8 +52,11 @@
               <h2 class="h5 mb-3">Parametry</h2>
 
               <div class="mb-3">
-                <label class="form-label" for="name">Název VM</label>
-                <input class="form-control" id="name" placeholder="např. skrlant-ubuntu" />
+                <label class="form-label" for="name">
+                    Název VM
+                <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní. Doporučení: začni prefixem projektu (např. demo-ubuntu-01).">i</span>
+                </label>
+                  <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
               </div>
 
               <div class="mb-3">
@@ -75,7 +78,7 @@
                 <div class="col-12 col-md-6">
                   <<label class="form-label" for="memory">RAM (MB)</label>
 <input class="form-control" id="memory"
-       type="number" min="512" max="16384" step="1" inputmode="numeric"
+       type="number" min="512" max="16384" step="256" inputmode="numeric"
        list="ramOptions" value="2048" />
 <datalist id="ramOptions">
   <option value="512"></option>
