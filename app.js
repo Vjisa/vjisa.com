@@ -257,6 +257,40 @@ async function refreshVmList() {
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
 
+// ===== Pending create banner (přežije přepnutí stránky) =====
+const pb = document.getElementById("pendingBanner");
+const pendingRaw = localStorage.getItem("pendingCreate");
+
+if (pb) {
+  if (pendingRaw) {
+    let pending = null;
+    try { pending = JSON.parse(pendingRaw); } catch {}
+    if (pending?.name) {
+      const exists = (vmsAll || []).some(v => (v.name || "") === pending.name);
+      if (exists) {
+        localStorage.removeItem("pendingCreate");
+        pb.style.display = "none";
+      } else {
+        pb.textContent = `Vytváří se VM: ${pending.name} …`;
+        pb.style.display = "";
+      }
+    } else {
+      pb.style.display = "none";
+    }
+  } else {
+    pb.style.display = "none";
+  }
+}
+
+// ===== Disk info (součet maxdisk z /api/vm/list) =====
+const di = document.getElementById("diskInfo");
+if (di) {
+  const usedBytes = (vmsAll || []).reduce((s, v) => s + (Number(v.maxdisk) || 0), 0);
+  const usedGB = (usedBytes / (1024 ** 3)).toFixed(1);
+  di.textContent = `Disk využito (virtuální velikost): ${usedGB} GB / 250 GB`;
+  di.style.display = "";
+}
+  
   // statistiky vždy z plného seznamu
   updateStats(vmsAll);
 
@@ -385,12 +419,20 @@ if (backBtn) {
   name,
   pool: localStorage.getItem("pool") || null
 }));
+        localStorage.setItem("pendingCreate", JSON.stringify({
+          ts: Date.now(),
+          name,
+            pool: localStorage.getItem("pool") || null
+            }));
         
         await apiPost("/api/vm/create", { name, template, cores, memory, slot });
 
+        localStorage.removeItem("pendingCreate");
+        
         setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
         setTimeout(() => { window.location.href = "myvm.html"; }, 600);
       } catch (e) {
+        localStorage.removeItem("pendingCreate");
         setStatus(String(e.message || e), "error");
       }
     });
