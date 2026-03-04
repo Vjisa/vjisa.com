@@ -440,6 +440,7 @@ async function refreshQuota() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const isCreate = document.body?.dataset?.page === "create"; 
   if (isCreate) {
   refreshQuota();
 
