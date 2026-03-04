@@ -192,7 +192,10 @@ function makeVmRow(vm, role) {
 
     if (!confirm(`Opravdu smazat VM ${vm.vmid}?`)) return;
 
-    setStatus("Mažu…", "success");
+    // okamžitě schovej z UI, ať je vidět akce
+row.style.display = "none";
+setStatus("Mažu…", "success");
+    
     const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
     if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
     const d = await parseResponse(r);
@@ -201,6 +204,7 @@ function makeVmRow(vm, role) {
     setStatus("Smazáno.", "success");
     await refreshVmList();
   } catch (e) {
+    row.style.display = "";
     setStatus(String(e.message || e), "error");
   }
 };
@@ -376,6 +380,12 @@ if (backBtn) {
         if (!Number.isInteger(memory) || memory < 512 || memory > 16384) { setStatus("RAM musí být 512–16384 MB.", "error"); return; }
         if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
 
+        localStorage.setItem("pendingCreate", JSON.stringify({
+          ts: Date.now(),
+          name,
+        pool: localStorage.getItem("pool") || null
+            }));
+        
         await apiPost("/api/vm/create", { name, template, cores, memory, slot });
 
         setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
