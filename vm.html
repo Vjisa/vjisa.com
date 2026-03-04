@@ -52,20 +52,11 @@
       </div>
 
       <div class="row g-3">
+        <!-- LEVÝ: formulář -->
         <div class="col-12 col-lg-7">
           <div class="card">
             <div class="card-body p-4">
-              <h2 class="h5 mb-2">Parametry</h2>
-
-              <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
-                <div class="text-muted small">
-                  Limity uživatele (celkem)
-                  <span class="vm-info" data-tip="Limity platí součtem přes všechny tvoje VM: max 100 VM, 8 jader CPU, 20 GB RAM, 250 GB disk (virtuální maxdisk).">i</span>
-                </div>
-                <div id="quotaBox" style="min-width: 280px;">
-                <div class="small text-muted">Načítám…</div>
-                </div>
-              </div>
+              <h2 class="h5 mb-3">Parametry</h2>
 
               <div class="mb-3">
                 <label class="form-label" for="name">
@@ -99,16 +90,26 @@
                     <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny VM.">i</span>
                   </label>
                   <input class="form-control" id="memory"
-                         type="number" min="512" max="16384" step="256" inputmode="numeric"
+                         type="number" min="256" max="20480" step="256" inputmode="numeric"
                          list="ramOptions" value="2048" />
                   <datalist id="ramOptions">
+                    <option value="256"></option>
                     <option value="512"></option>
                     <option value="1024"></option>
                     <option value="2048"></option>
                     <option value="4096"></option>
                     <option value="8192"></option>
                     <option value="16384"></option>
+                    <option value="20480"></option>
                   </datalist>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="diskGb">
+                    Disk (GB)
+                    <span class="vm-info" data-tip="Celkový limit disku je 250 GB (virtuální maxdisk). Pozn.: aby se disk reálně nastavil při vytvoření, musí se to posílat v create requestu a zpracovat backendem.">i</span>
+                  </label>
+                  <input class="form-control" id="diskGb" type="number" min="5" max="250" step="5" inputmode="numeric" value="20" />
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -124,6 +125,19 @@
               </div>
 
               <div class="small mt-3" id="status">Připraveno.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRAVÝ: quota panel -->
+        <div class="col-12 col-lg-5">
+          <div class="card">
+            <div class="card-body p-4">
+              <h2 class="h5 mb-2">Využití limitů</h2>
+              <div class="text-muted small mb-3">
+                Limity platí součtem přes všechny tvoje VM (max 100 VM, 8 CPU, 20 GB RAM, 250 GB disk).
+              </div>
+              <div id="quotaBox"><div class="small text-muted">Načítám…</div></div>
             </div>
           </div>
         </div>
