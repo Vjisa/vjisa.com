@@ -263,35 +263,93 @@ function initDashboardFilters() {
 
 let quotaCache = null;
 
+function clamp01(x) {
+  if (!Number.isFinite(x)) return 0;
+  if (x < 0) return 0;
+  if (x > 1) return 1;
+  return x;
+}
+
+function barClass(usedRatio) {
+  if (usedRatio >= 0.9) return "bg-danger";
+  if (usedRatio >= 0.75) return "bg-warning";
+  return "bg-success";
+}
+
 function renderQuotaBox() {
   const box = document.getElementById("quotaBox");
   if (!box) return;
 
   const role = getRole();
   if (role === "admin") {
-    box.textContent = "Admin: bez limitu";
+    box.innerHTML = `<div class="small fw-semibold">Admin: bez limitu</div>`;
     return;
   }
   if (!quotaCache) {
-    box.textContent = "Načítám…";
+    box.innerHTML = `<div class="small text-muted">Načítám…</div>`;
     return;
   }
 
-  const leftVms = QUOTA.maxVms - quotaCache.vms;
-  const leftCores = QUOTA.maxCores - quotaCache.cores;
-  const leftRamGB = fmtGB(QUOTA.maxRamBytes - quotaCache.ramBytes);
-  const leftDiskGB = fmtGB(QUOTA.maxDiskBytes - quotaCache.diskBytes);
+  const usedVms = quotaCache.vms;
+  const usedCores = quotaCache.cores;
+  const usedRamGB = Number(fmtGB(quotaCache.ramBytes));
+  const usedDiskGB = Number(fmtGB(quotaCache.diskBytes));
 
+  const rVms = clamp01(usedVms / QUOTA.maxVms);
+  const rCpu = clamp01(usedCores / QUOTA.maxCores);
+  const rRam = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
+  const rDisk = clamp01(quotaCache.diskBytes / QUOTA.maxDiskBytes);
+
+  // projekce po vytvoření (CPU/RAM)
   const selCores = Number(document.getElementById("cores")?.value || 0);
   const selMemMiB = Number(document.getElementById("memory")?.value || 0);
   const selRamBytes = selMemMiB * 1024 * 1024;
 
-  const afterCores = leftCores - (Number.isFinite(selCores) ? selCores : 0);
-  const afterRamGB = fmtGB((QUOTA.maxRamBytes - (quotaCache.ramBytes + selRamBytes)));
+  const afterCores = usedCores + (Number.isFinite(selCores) ? selCores : 0);
+  const afterRamBytes = quotaCache.ramBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
 
-  box.innerHTML =
-    `Zbývá: CPU ${leftCores}/${QUOTA.maxCores}, RAM ${leftRamGB}/20.0 GB, Disk ${leftDiskGB}/250.0 GB, VM ${leftVms}/${QUOTA.maxVms}<br>` +
-    `Po vytvoření: CPU ${afterCores}/${QUOTA.maxCores}, RAM ${afterRamGB}/20.0 GB`;
+  const rCpuAfter = clamp01(afterCores / QUOTA.maxCores);
+  const rRamAfter = clamp01(afterRamBytes / QUOTA.maxRamBytes);
+
+  box.innerHTML = `
+    <div class="small fw-semibold mb-2">Využití limitů</div>
+
+    <div class="small d-flex justify-content-between">
+      <span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span>
+    </div>
+    <div class="progress mb-2" style="height:10px;">
+      <div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu*100).toFixed(0)}%"></div>
+    </div>
+    <div class="small text-muted mb-2">Po vytvoření: ${afterCores}/${QUOTA.maxCores}</div>
+    <div class="progress mb-3" style="height:8px;">
+      <div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter*100).toFixed(0)}%"></div>
+    </div>
+
+    <div class="small d-flex justify-content-between">
+      <span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span>
+    </div>
+    <div class="progress mb-2" style="height:10px;">
+      <div class="progress-bar ${barClass(rRam)}" style="width:${(rRam*100).toFixed(0)}%"></div>
+    </div>
+    <div class="small text-muted mb-2">Po vytvoření: ${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</div>
+    <div class="progress mb-3" style="height:8px;">
+      <div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter*100).toFixed(0)}%"></div>
+    </div>
+
+    <div class="small d-flex justify-content-between">
+      <span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span>
+    </div>
+    <div class="progress mb-3" style="height:10px;">
+      <div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk*100).toFixed(0)}%"></div>
+    </div>
+
+    <div class="small d-flex justify-content-between">
+      <span>VM</span><span>${usedVms}/${QUOTA.maxVms}</span>
+    </div>
+    <div class="progress" style="height:10px;">
+      <div class="progress-bar ${barClass(rVms)}" style="width:${(rVms*100).toFixed(0)}%"></div>
+    </div>
+  `;
 }
 
 async function refreshQuotaFromList() {
