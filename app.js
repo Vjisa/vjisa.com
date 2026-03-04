@@ -380,11 +380,11 @@ if (backBtn) {
         if (!Number.isInteger(memory) || memory < 512 || memory > 16384) { setStatus("RAM musí být 512–16384 MB.", "error"); return; }
         if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
 
-        localStorage.setItem("pendingCreate", JSON.stringify({
-          ts: Date.now(),
-          name,
-        pool: localStorage.getItem("pool") || null
-            }));
+       localStorage.setItem("pendingCreate", JSON.stringify({
+  ts: Date.now(),
+  name,
+  pool: localStorage.getItem("pool") || null
+}));
         
         await apiPost("/api/vm/create", { name, template, cores, memory, slot });
 
