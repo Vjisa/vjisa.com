@@ -29,8 +29,13 @@
       </nav>
 
       <div class="sidebar-footer d-flex gap-2 align-items-center">
-       <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
-        <a class="sidebar-link" href="index.html"><span class="icon">🚪</span> Odhlásit se</a>
+        <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
+        <a class="sidebar-link" href="#" id="logoutLink"><span class="icon">🚪</span> Odhlásit se</a>
+      </div>
+
+      <div class="p-3 small text-muted">
+        <div><b data-bind="username">—</b></div>
+        <div><span data-bind="role">—</span> | pool: <span data-bind="pool">—</span></div>
       </div>
     </aside>
 
@@ -50,27 +55,22 @@
         <div class="col-12 col-lg-7">
           <div class="card">
             <div class="card-body p-4">
-              <h2 class="h5 mb-3">Parametry</h2>
+              <h2 class="h5 mb-2">Parametry</h2>
 
               <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
-  <div class="text-muted small">
-    Limity uživatele (celkem)
-    <span class="vm-info" data-tip="Limity platí součtem přes všechny tvoje VM: max 100 VM, 8 jader CPU, 20 GB RAM, 250 GB disk (virtuální velikost maxdisk).">i</span>
-  </div>
-  <div class="small" id="quotaBox">Načítám…</div>
-</div>
-              
-<div class="text-muted small mb-3">
-  Limity uživatele
-  <span class="vm-info" data-tip="Limity jsou součtem přes všechny tvoje VM. Typicky: CPU max 8 jader, RAM max 20 GB, disk max 250 GB. Pokud limit překročíš, vytvoření se odmítne.">i</span>
-</div>
-              
+                <div class="text-muted small">
+                  Limity uživatele (celkem)
+                  <span class="vm-info" data-tip="Limity platí součtem přes všechny tvoje VM: max 100 VM, 8 jader CPU, 20 GB RAM, 250 GB disk (virtuální maxdisk).">i</span>
+                </div>
+                <div class="small" id="quotaBox">Načítám…</div>
+              </div>
+
               <div class="mb-3">
                 <label class="form-label" for="name">
-                    Název VM
-                <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní. Doporučení: začni prefixem projektu (např. demo-ubuntu-01).">i</span>
+                  Název VM
+                  <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní.">i</span>
                 </label>
-                  <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
+                <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
               </div>
 
               <div class="mb-3">
@@ -84,84 +84,52 @@
 
               <div class="row g-3">
                 <div class="col-12 col-md-6">
-                  <<label class="form-label" for="cores">
-  CPU (jádra)
-  <span class="vm-info" data-tip="Celkový limit uživatele je 8 jader přes všechny jeho VM. Tady vybíráš počet jader pro tuto VM.">i</span>
-</label>
-                  <input class="form-control" id="cores"
-                         type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
+                  <label class="form-label" for="cores">
+                    CPU (jádra)
+                    <span class="vm-info" data-tip="Celkový limit uživatele je 8 jader přes všechny VM.">i</span>
+                  </label>
+                  <input class="form-control" id="cores" type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
                 </div>
 
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="memory">
-  RAM (MB)
-  <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny jeho VM. Tady vybíráš RAM pro tuto VM.">i</span>
-</label>
-<input class="form-control" id="memory"
-       type="number" min="512" max="16384" step="256" inputmode="numeric"
-       list="ramOptions" value="2048" />
-<datalist id="ramOptions">
-  <option value="512"></option>
-  <option value="1024"></option>
-  <option value="2048"></option>
-  <option value="4096"></option>
-  <option value="8192"></option>
-  <option value="16384"></option>
-</datalist>
+                    RAM (MB)
+                    <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny VM.">i</span>
+                  </label>
+                  <input class="form-control" id="memory"
+                         type="number" min="512" max="16384" step="256" inputmode="numeric"
+                         list="ramOptions" value="2048" />
+                  <datalist id="ramOptions">
+                    <option value="512"></option>
+                    <option value="1024"></option>
+                    <option value="2048"></option>
+                    <option value="4096"></option>
+                    <option value="8192"></option>
+                    <option value="16384"></option>
+                  </datalist>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="slot">VMID slot (0–99)</label>
+                  <input class="form-control" id="slot" type="number" min="0" max="99" step="1" inputmode="numeric" placeholder="nepovinné" />
+                  <div class="text-muted small mt-1">User uvidí slot, admin plné VMID.</div>
                 </div>
               </div>
 
-<div class="col-12 col-md-6">
-  <label class="form-label" for="slot">VMID slot (0–99)</label>
-  <input class="form-control" id="slot" type="number" min="0" max="99" step="1" inputmode="numeric" placeholder="nepovinné" />
-  <div class="text-muted small mt-1">User uvidí slot, admin plné VMID.</div>
-</div>
-              
               <div class="d-flex gap-2 mt-4">
                 <button class="btn btn-light" id="btnTest" type="button">Test backendu</button>
                 <button class="btn btn-primary" id="btnCreate" type="button">Vytvořit VM</button>
               </div>
 
-              <!-- jen krátký status (ne seznam VM, žádné logy) -->
-              <div class="text-muted small mt-3" id="status">Připraveno.</div>
+              <div class="small mt-3" id="status">Připraveno.</div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- skrytý #out jen kvůli kompatibilitě (neuvidíš ho) -->
-      
     </main>
   </div>
 
   <script src="auth.js" defer></script>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // template z URL: vm.html?template=debian
-      const p = new URLSearchParams(location.search);
-      const t = (p.get("template") || "").trim();
-      if (t) {
-        const sel = document.getElementById("template");
-        if (sel) for (const opt of sel.options) if (opt.value === t) sel.value = t;
-      }
-
-      // cores: jen celé 1–8
-      const cores = document.getElementById("cores");
-      if (cores) {
-        cores.addEventListener("input", () => {
-          if (cores.value === "") return;
-          let n = parseInt(cores.value, 10);
-          if (Number.isNaN(n)) { cores.value = ""; return; }
-          if (n < 1) n = 1;
-          if (n > 8) n = 8;
-          cores.value = String(n);
-        });
-      }
-    });
-  </script>
-
   <script src="app.js" defer></script>
-  <script src="auth.js" defer></script>
 </body>
 </html>
