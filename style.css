@@ -754,3 +754,36 @@ body.theme-dark {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.vm-info{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;height:18px;
+  border-radius:50%;
+  margin-left:6px;
+  font-size:12px;
+  font-weight:700;
+  cursor:help;
+  border:1px solid rgba(148,163,184,0.5);
+}
+.vm-info{ color:#0f172a; background:rgba(255,255,255,0.7); }
+.theme-dark .vm-info{ color:#e2e8f0; background:rgba(2,6,23,0.6); }
+
+.vm-info{ position:relative; }
+.vm-info:hover::after{
+  content:attr(data-tip);
+  position:absolute;
+  left:24px;
+  top:-6px;
+  width:320px;
+  padding:10px 12px;
+  border-radius:12px;
+  z-index:9999;
+  font-weight:500;
+  font-size:12px;
+  line-height:1.35;
+  background:rgba(15,23,42,0.95);
+  color:#e2e8f0;
+  border:1px solid rgba(148,163,184,0.25);
+}
