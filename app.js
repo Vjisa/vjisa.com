@@ -295,56 +295,70 @@ function renderQuotaBox() {
   const usedRamGB = Number(fmtGB(quotaCache.ramBytes));
   const usedDiskGB = Number(fmtGB(quotaCache.diskBytes));
 
-  const rVms = clamp01(usedVms / QUOTA.maxVms);
-  const rCpu = clamp01(usedCores / QUOTA.maxCores);
-  const rRam = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
+  const rVms  = clamp01(usedVms / QUOTA.maxVms);
+  const rCpu  = clamp01(usedCores / QUOTA.maxCores);
+  const rRam  = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
   const rDisk = clamp01(quotaCache.diskBytes / QUOTA.maxDiskBytes);
 
-  // projekce po vytvoření (CPU/RAM)
+  // projekce po vytvoření (CPU/RAM/DISK)
   const selCores = Number(document.getElementById("cores")?.value || 0);
   const selMemMiB = Number(document.getElementById("memory")?.value || 0);
   const selRamBytes = selMemMiB * 1024 * 1024;
 
+  const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
+  const selDiskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
+  const selDiskBytes = (selDiskGb && Number.isFinite(selDiskGb)) ? selDiskGb * 1024 * 1024 * 1024 : 0;
+
   const afterCores = usedCores + (Number.isFinite(selCores) ? selCores : 0);
   const afterRamBytes = quotaCache.ramBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
+  const afterDiskBytes = quotaCache.diskBytes + selDiskBytes;
 
-  const rCpuAfter = clamp01(afterCores / QUOTA.maxCores);
-  const rRamAfter = clamp01(afterRamBytes / QUOTA.maxRamBytes);
+  const rCpuAfter  = clamp01(afterCores / QUOTA.maxCores);
+  const rRamAfter  = clamp01(afterRamBytes / QUOTA.maxRamBytes);
+  const rDiskAfter = clamp01(afterDiskBytes / QUOTA.maxDiskBytes);
 
   box.innerHTML = `
-    <div class="small fw-semibold mb-2">Využití limitů</div>
-
-    <div class="small d-flex justify-content-between">
+    <div class="small fw-semibold d-flex justify-content-between">
       <span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span>
     </div>
     <div class="progress mb-2" style="height:10px;">
       <div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu*100).toFixed(0)}%"></div>
     </div>
-    <div class="small text-muted mb-2">Po vytvoření: ${afterCores}/${QUOTA.maxCores}</div>
+    <div class="small text-muted d-flex justify-content-between mb-2">
+      <span>Po vytvoření</span><span>${afterCores}/${QUOTA.maxCores}</span>
+    </div>
     <div class="progress mb-3" style="height:8px;">
       <div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter*100).toFixed(0)}%"></div>
     </div>
 
-    <div class="small d-flex justify-content-between">
+    <div class="small fw-semibold d-flex justify-content-between">
       <span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span>
     </div>
     <div class="progress mb-2" style="height:10px;">
       <div class="progress-bar ${barClass(rRam)}" style="width:${(rRam*100).toFixed(0)}%"></div>
     </div>
-    <div class="small text-muted mb-2">Po vytvoření: ${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</div>
+    <div class="small text-muted d-flex justify-content-between mb-2">
+      <span>Po vytvoření</span><span>${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</span>
+    </div>
     <div class="progress mb-3" style="height:8px;">
       <div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter*100).toFixed(0)}%"></div>
     </div>
 
-    <div class="small d-flex justify-content-between">
+    <div class="small fw-semibold d-flex justify-content-between">
       <span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span>
     </div>
-    <div class="progress mb-3" style="height:10px;">
+    <div class="progress mb-2" style="height:10px;">
       <div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk*100).toFixed(0)}%"></div>
     </div>
+    <div class="small text-muted d-flex justify-content-between mb-2">
+      <span>Po vytvoření</span><span>${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</span>
+    </div>
+    <div class="progress mb-3" style="height:8px;">
+      <div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter*100).toFixed(0)}%"></div>
+    </div>
 
-    <div class="small d-flex justify-content-between">
-      <span>VM</span><span>${usedVms}/${QUOTA.maxVms}</span>
+    <div class="small fw-semibold d-flex justify-content-between">
+      <span>Počet VM</span><span>${usedVms}/${QUOTA.maxVms}</span>
     </div>
     <div class="progress" style="height:10px;">
       <div class="progress-bar ${barClass(rVms)}" style="width:${(rVms*100).toFixed(0)}%"></div>
