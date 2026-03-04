@@ -5,7 +5,26 @@ const uiState = {
   statusFilter: null, // "running" | "stopped" | null
   poolFilter: null,   // "user1" | "user2" | "user3" | "mojevm" | null
   openPools: new Set()
+  history: [],
 };
+
+function pushHistory() {
+  uiState.history.push({
+    statusFilter: uiState.statusFilter,
+    poolFilter: uiState.poolFilter,
+    openPools: new Set(uiState.openPools),
+  });
+  if (uiState.history.length > 30) uiState.history.shift();
+}
+
+function popHistory() {
+  const prev = uiState.history.pop();
+  if (!prev) return false;
+  uiState.statusFilter = prev.statusFilter;
+  uiState.poolFilter = prev.poolFilter;
+  uiState.openPools = prev.openPools;
+  return true;
+}
 
 function getRole() {
   return localStorage.getItem("role") || "user";
@@ -124,12 +143,32 @@ function makeVmRow(vm, role) {
   const btnStart = document.createElement("button");
   btnStart.textContent = "Start";
   btnStart.className = "btn btn-sm btn-success";
-  btnStart.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/start`, {}); await refreshVmList(); };
+ btnStart.onclick = async () => {
+  try {
+    setStatus("Spouštím…", "success");
+    await apiPost(`/api/vm/${vm.vmid}/start`, {});
+    await new Promise(r => setTimeout(r, 800));
+    await refreshVmList();
+  } catch (e) {
+    setStatus(String(e.message || e), "error");
+  }
+};
+
 
   const btnStop = document.createElement("button");
   btnStop.textContent = "Stop";
   btnStop.className = "btn btn-sm btn-warning";
-  btnStop.onclick = async () => { await apiPost(`/api/vm/${vm.vmid}/stop`, {}); await refreshVmList(); };
+ btnStop.onclick = async () => {
+  try {
+    setStatus("Vypínám…", "success");
+    await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+    await new Promise(r => setTimeout(r, 800));
+    await refreshVmList();
+  } catch (e) {
+    setStatus(String(e.message || e), "error");
+  }
+};
+
 
   actions.appendChild(btnConsole);
   actions.appendChild(btnStart);
@@ -140,13 +179,31 @@ function makeVmRow(vm, role) {
     btnDelete.textContent = "Smazat";
     btnDelete.className = "btn btn-sm btn-danger";
     btnDelete.onclick = async () => {
-      if (!confirm(`Smazat VM ${vm.vmid}?`)) return;
-      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
-      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
-      const d = await parseResponse(r);
-      if (!r.ok) throw new Error(d?.error || String(d));
-      await refreshVmList();
-    };
+  try {
+    if (vm.status === "running") {
+      const ok = confirm(`VM ${vm.vmid} běží. Nejdřív ji vypnout a pak smazat?`);
+      if (!ok) return;
+
+      setStatus("Vypínám…", "success");
+      await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+      // krátká pauza, ať se stav v Proxmoxu propíše
+      await new Promise(r => setTimeout(r, 800));
+    }
+
+    if (!confirm(`Opravdu smazat VM ${vm.vmid}?`)) return;
+
+    setStatus("Mažu…", "success");
+    const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+    if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+    const d = await parseResponse(r);
+    if (!r.ok) throw new Error(d?.error || String(d));
+
+    setStatus("Smazáno.", "success");
+    await refreshVmList();
+  } catch (e) {
+    setStatus(String(e.message || e), "error");
+  }
+};
     actions.appendChild(btnDelete);
   }
 
@@ -166,17 +223,21 @@ function setCardClickable(statId, handler) {
 
 function initDashboardFilters() {
   // klik na statistiky: filtr stavu
+  
   setCardClickable("statRunning", () => {
+    pushHistory();
     uiState.statusFilter = (uiState.statusFilter === "running") ? null : "running";
     refreshVmList();
   });
 
   setCardClickable("statStopped", () => {
+    pushHistory();
     uiState.statusFilter = (uiState.statusFilter === "stopped") ? null : "stopped";
     refreshVmList();
   });
 
   setCardClickable("statTotal", () => {
+    pushHistory();
     uiState.statusFilter = null;
     uiState.poolFilter = null;
     refreshVmList();
@@ -247,6 +308,7 @@ async function refreshVmList() {
       // klik na bublinu = filtr na uživatele (toggle) + zároveň ať zůstane otevřená
       summary.addEventListener("click", (e) => {
         // necháme default toggle open/close
+        pushHistory();
         const next = (uiState.poolFilter === p) ? null : p;
         uiState.poolFilter = next;
         uiState.openPools.add(p); // ať to po refresh zůstane otevřené
@@ -274,6 +336,19 @@ async function refreshVmList() {
 document.addEventListener("DOMContentLoaded", () => {
   initDashboardFilters();
 
+  const backBtn = document.getElementById("filterBack");
+if (backBtn) {
+  backBtn.addEventListener("click", () => {
+    if (!popHistory()) {
+      // když není historie, reset filtrů
+      uiState.statusFilter = null;
+      uiState.poolFilter = null;
+      uiState.openPools = new Set();
+    }
+    refreshVmList();
+  });
+}
+  
   const isCreate = document.body?.dataset?.page === "create";
 
   if (!isCreate) {
