@@ -371,7 +371,83 @@ if (di) {
   for (const vm of vms) out.appendChild(makeVmRow(vm, role));
 }
 
+const QUOTA = {
+  maxVms: 100,
+  maxCores: 8,
+  maxRamBytes: 20 * 1024 * 1024 * 1024,   // 20 GB
+  maxDiskBytes: 250 * 1024 * 1024 * 1024, // 250 GB
+};
+
+function fmtGB(bytes) {
+  return (bytes / (1024 ** 3)).toFixed(1);
+}
+
+function calcUsageFromVms(vms) {
+  return {
+    vms: (vms || []).length,
+    cores: (vms || []).reduce((s, v) => s + (Number(v.maxcpu) || 0), 0),
+    ramBytes: (vms || []).reduce((s, v) => s + (Number(v.maxmem) || 0), 0),
+    diskBytes: (vms || []).reduce((s, v) => s + (Number(v.maxdisk) || 0), 0),
+  };
+}
+
+let quotaCache = null;
+
+function renderQuotaBox(usage) {
+  const box = document.getElementById("quotaBox");
+  if (!box) return;
+
+  const role = getRole();
+  if (role === "admin") {
+    box.textContent = "Admin: bez limitu";
+    return;
+  }
+  if (!usage) {
+    box.textContent = "Limity nelze načíst";
+    return;
+  }
+
+  const leftVms = QUOTA.maxVms - usage.vms;
+  const leftCores = QUOTA.maxCores - usage.cores;
+  const leftRamGB = fmtGB(QUOTA.maxRamBytes - usage.ramBytes);
+  const leftDiskGB = fmtGB(QUOTA.maxDiskBytes - usage.diskBytes);
+
+  // projekce podle toho, co je vyplněno ve formuláři
+  const selCores = Number(document.getElementById("cores")?.value || 0);
+  const selMemMiB = Number(document.getElementById("memory")?.value || 0);
+  const selRamBytes = selMemMiB * 1024 * 1024;
+
+  const afterCores = leftCores - (Number.isFinite(selCores) ? selCores : 0);
+  const afterRamGB = fmtGB((QUOTA.maxRamBytes - (usage.ramBytes + selRamBytes)));
+
+  box.innerHTML =
+    `Zbývá: CPU ${leftCores}/${QUOTA.maxCores}, RAM ${leftRamGB}/20.0 GB, Disk ${leftDiskGB}/250.0 GB, VM ${leftVms}/${QUOTA.maxVms}<br>` +
+    `Po vytvoření: CPU ${afterCores}/${QUOTA.maxCores}, RAM ${afterRamGB}/20.0 GB`;
+}
+
+async function refreshQuota() {
+  const box = document.getElementById("quotaBox");
+  if (!box) return;
+
+  try {
+    const data = await apiGet("/api/vm/list");
+    const vms = data?.vms || [];
+    quotaCache = calcUsageFromVms(vms);
+    renderQuotaBox(quotaCache);
+  } catch (e) {
+    box.textContent = "Limity nelze načíst";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  if (isCreate) {
+  refreshQuota();
+
+  const coresEl = document.getElementById("cores");
+  const memEl = document.getElementById("memory");
+  if (coresEl) coresEl.addEventListener("input", () => renderQuotaBox(quotaCache));
+  if (memEl) memEl.addEventListener("input", () => renderQuotaBox(quotaCache));
+}
   initDashboardFilters();
 
   const backBtn = document.getElementById("filterBack");
