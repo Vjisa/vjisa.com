@@ -25,10 +25,11 @@
         <a class="sidebar-link" href="myvm.html"><span class="icon">🖥️</span> Moje VM</a>
         <a class="sidebar-link active" href="vm.html"><span class="icon">➕</span> Vytvořit VM</a>
         <a class="sidebar-link" href="settings.html"><span class="icon">⚙️</span> Nastavení</a>
+        <a class="sidebar-link" data-role="admin" href="audit.html"><span class="icon">🧾</span> Audit</a>
       </nav>
 
       <div class="sidebar-footer d-flex gap-2 align-items-center">
-        <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
+       <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
         <a class="sidebar-link" href="index.html"><span class="icon">🚪</span> Odhlásit se</a>
       </div>
     </aside>
@@ -51,6 +52,14 @@
             <div class="card-body p-4">
               <h2 class="h5 mb-3">Parametry</h2>
 
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+  <div class="text-muted small">
+    Limity uživatele (celkem)
+    <span class="vm-info" data-tip="Limity platí součtem přes všechny tvoje VM: max 100 VM, 8 jader CPU, 20 GB RAM, 250 GB disk (virtuální velikost maxdisk).">i</span>
+  </div>
+  <div class="small" id="quotaBox">Načítám…</div>
+</div>
+              
 <div class="text-muted small mb-3">
   Limity uživatele
   <span class="vm-info" data-tip="Limity jsou součtem přes všechny tvoje VM. Typicky: CPU max 8 jader, RAM max 20 GB, disk max 250 GB. Pokud limit překročíš, vytvoření se odmítne.">i</span>
