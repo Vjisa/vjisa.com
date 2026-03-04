@@ -75,13 +75,19 @@
 
               <div class="row g-3">
                 <div class="col-12 col-md-6">
-                  <label class="form-label" for="cores">CPU (cores)</label>
+                  <<label class="form-label" for="cores">
+  CPU (jádra)
+  <span class="vm-info" data-tip="Celkový limit uživatele je 8 jader přes všechny jeho VM. Tady vybíráš počet jader pro tuto VM.">i</span>
+</label>
                   <input class="form-control" id="cores"
                          type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
                 </div>
 
                 <div class="col-12 col-md-6">
-                  <<label class="form-label" for="memory">RAM (MB)</label>
+                  <label class="form-label" for="memory">
+  RAM (MB)
+  <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny jeho VM. Tady vybíráš RAM pro tuto VM.">i</span>
+</label>
 <input class="form-control" id="memory"
        type="number" min="512" max="16384" step="256" inputmode="numeric"
        list="ramOptions" value="2048" />
