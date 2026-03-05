@@ -801,3 +801,32 @@ body.theme-dark {
 }
 
 .vm-dot[data-state="pending"] { background: #f59e0b; } /* žlutá */
+
+/* Audit table – dark mode */
+.theme-dark table {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.theme-dark table thead th {
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(226, 232, 240, 0.95);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.theme-dark table tbody td {
+  background: rgba(2, 6, 23, 0.55);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.theme-dark table tbody tr:hover td {
+  background: rgba(30, 41, 59, 0.55);
+}
+
+/* Pokud máš bootstrap class .table (lepší zacílení) */
+.theme-dark .table {
+  --bs-table-bg: rgba(2, 6, 23, 0.55);
+  --bs-table-striped-bg: rgba(15, 23, 42, 0.45);
+  --bs-table-hover-bg: rgba(30, 41, 59, 0.55);
+  --bs-table-color: rgba(226, 232, 240, 0.92);
+  --bs-table-border-color: rgba(148, 163, 184, 0.18);
+}
