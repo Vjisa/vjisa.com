@@ -15,6 +15,31 @@ const uiState = {
   history: []
 };
 
+const actionState = {
+  pending: new Map(),     // vmid -> { kind: "starting"|"stopping"|"deleting", until:number }
+  refreshTimer: null,
+  statusTimer: null,
+};
+
+function markPending(vmid, kind, ms = 5000) {
+  actionState.pending.set(Number(vmid), { kind, until: Date.now() + ms });
+}
+
+function getPending(vmid) {
+  const k = Number(vmid);
+  const p = actionState.pending.get(k);
+  if (!p) return null;
+  if (Date.now() > p.until) { actionState.pending.delete(k); return null; }
+  return p.kind;
+}
+
+function scheduleRefresh(ms = 5000) {
+  clearTimeout(actionState.refreshTimer);
+  actionState.refreshTimer = setTimeout(() => {
+    refreshVmList().catch(() => {});
+  }, ms);
+}
+
 function getRole() {
   return localStorage.getItem("role") || "user";
 }
@@ -24,14 +49,26 @@ function authHeaders(extra = {}) {
   return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
 }
 
-function setStatus(msg, type = "info") {
+function setStatus(msg, type = "info", autoHideMs = 0) {
   const el = document.getElementById("status");
   if (!el) return;
+
+  clearTimeout(actionState.statusTimer);
+
   el.textContent = msg;
+  el.style.display = msg ? "" : "none";
+
   el.classList.remove("text-danger", "text-success", "text-muted");
   if (type === "error") el.classList.add("text-danger");
   else if (type === "success") el.classList.add("text-success");
   else el.classList.add("text-muted");
+
+  if (autoHideMs > 0) {
+    actionState.statusTimer = setTimeout(() => {
+      el.textContent = "";
+      el.style.display = "none";
+    }, autoHideMs);
+  }
 }
 
 async function parseResponse(r) {
@@ -144,11 +181,18 @@ function makeVmRow(vm, role) {
 
   const left = document.createElement("div");
   left.className = "vm-row-left";
-  left.appendChild(makeDot(vm.status));
+  const dotEl = makeDot(vm.status);
+left.appendChild(dotEl);
 
   const title = document.createElement("div");
   title.className = "vm-row-title";
-  title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${vm.status}`;
+const pending = getPending(vm.vmid);
+const displayStatus = pending === "starting" ? "starting" : pending === "stopping" ? "stopping" : vm.status;
+
+// tečka: pending = žlutá, jinak podle reálného stavu
+dotEl.dataset.state = pending ? "pending" : (vm.status || "");
+
+title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}`;
   left.appendChild(title);
 
   const actions = document.createElement("div");
@@ -162,30 +206,37 @@ function makeVmRow(vm, role) {
   const btnStart = document.createElement("button");
   btnStart.textContent = "Start";
   btnStart.className = "btn btn-sm btn-success";
-  btnStart.onclick = async () => {
-    try {
-      setStatus("Spouštím…", "success");
-      await apiPost(`/api/vm/${vm.vmid}/start`, {});
-      await new Promise(r => setTimeout(r, 800));
-      await refreshVmList();
-    } catch (e) {
-      setStatus(String(e.message || e), "error");
-    }
-  };
+ btnStart.onclick = async () => {
+  try {
+    markPending(vm.vmid, "starting", 6000);
+    dotEl.dataset.state = "pending";
+    title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting`;
 
-  const btnStop = document.createElement("button");
-  btnStop.textContent = "Stop";
-  btnStop.className = "btn btn-sm btn-warning";
-  btnStop.onclick = async () => {
-    try {
-      setStatus("Vypínám…", "success");
-      await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-      await new Promise(r => setTimeout(r, 800));
-      await refreshVmList();
-    } catch (e) {
-      setStatus(String(e.message || e), "error");
-    }
-  };
+    setStatus("Spouštím…", "success", 3000);
+    scheduleRefresh(5000);
+
+    await apiPost(`/api/vm/${vm.vmid}/start`, {});
+  } catch (e) {
+    setStatus(String(e.message || e), "error", 6000);
+    scheduleRefresh(0);
+  }
+};
+
+btnStop.onclick = async () => {
+  try {
+    markPending(vm.vmid, "stopping", 6000);
+    dotEl.dataset.state = "pending";
+    title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
+
+    setStatus("Vypínám…", "success", 3000);
+    scheduleRefresh(5000);
+
+    await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+  } catch (e) {
+    setStatus(String(e.message || e), "error", 6000);
+    scheduleRefresh(0);
+  }
+};
 
   actions.appendChild(btnConsole);
   actions.appendChild(btnStart);
@@ -209,9 +260,23 @@ function makeVmRow(vm, role) {
 
       if (!confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
 
-      // OKAMŽITĚ pryč z UI
-      row.remove();
-      setStatus("Mažu…", "success");
+    markPending(vm.vmid, "deleting", 15000);
+    row.remove();
+    setStatus("Mažu…", "success", 3000);
+    scheduleRefresh(5000);
+
+    const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+    if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+    const d = await parseResponse(r);
+    if (!r.ok) throw new Error(d?.error || String(d));
+
+    setStatus("Smazáno.", "success", 3000);
+    scheduleRefresh(0);
+  } catch (e) {
+    setStatus(String(e.message || e), "error", 6000);
+    scheduleRefresh(0);
+  }
+};
 
       const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
       if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
@@ -391,7 +456,9 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-
+// skryj VM v procesu mazání, aby se nevracely po refreshi
+const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
+  
   updateStats(vmsAll);
 
   const role = getRole();
