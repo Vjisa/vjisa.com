@@ -485,13 +485,15 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshVmList().catch(e => setStatus(String(e.message || e), "error"));
   }
 
-  if (isCreate) {
-    refreshQuotaFromList();
-    const coresEl = document.getElementById("cores");
-    const memEl = document.getElementById("memory");
-    if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
-    if (memEl) memEl.addEventListener("input", renderQuotaBox);
-  }
+ if (isCreate) {
+  refreshQuotaFromList();
+  const coresEl = document.getElementById("cores");
+  const memEl = document.getElementById("memory");
+  const diskEl = document.getElementById("diskGb");
+  if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
+  if (memEl) memEl.addEventListener("input", renderQuotaBox);
+  if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
+}
 
   const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
