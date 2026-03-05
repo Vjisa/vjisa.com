@@ -1,4 +1,4 @@
-/* app.js – stabilní verze: dashboard filtry + admin bubliny + zachování otevření + quota na create + status barvy + slot */
+/* app.js – stabilní: bubliny, filtry, quota, pending start/stop/delete, auto refresh, auto-hide status */
 var API_BASE = window.API_BASE || (window.API_BASE = "https://api.jisavl22.fun");
 
 const QUOTA = {
@@ -10,35 +10,16 @@ const QUOTA = {
 
 const uiState = {
   statusFilter: null,   // "running" | "stopped" | null
-  poolFilter: null,     // "user1" | "user2" | "user3" | "mojevm" | null
+  poolFilter: null,     // "user1" | "user2" | ...
   openPools: new Set(),
   history: []
 };
 
 const actionState = {
-  pending: new Map(),     // vmid -> { kind: "starting"|"stopping"|"deleting", until:number }
+  pending: new Map(),      // vmid -> { kind, until }
   refreshTimer: null,
-  statusTimer: null,
+  statusTimer: null
 };
-
-function markPending(vmid, kind, ms = 5000) {
-  actionState.pending.set(Number(vmid), { kind, until: Date.now() + ms });
-}
-
-function getPending(vmid) {
-  const k = Number(vmid);
-  const p = actionState.pending.get(k);
-  if (!p) return null;
-  if (Date.now() > p.until) { actionState.pending.delete(k); return null; }
-  return p.kind;
-}
-
-function scheduleRefresh(ms = 5000) {
-  clearTimeout(actionState.refreshTimer);
-  actionState.refreshTimer = setTimeout(() => {
-    refreshVmList().catch(() => {});
-  }, ms);
-}
 
 function getRole() {
   return localStorage.getItem("role") || "user";
@@ -55,7 +36,7 @@ function setStatus(msg, type = "info", autoHideMs = 0) {
 
   clearTimeout(actionState.statusTimer);
 
-  el.textContent = msg;
+  el.textContent = msg || "";
   el.style.display = msg ? "" : "none";
 
   el.classList.remove("text-danger", "text-success", "text-muted");
@@ -109,18 +90,9 @@ function calcUsageFromVms(vms) {
   };
 }
 
-function updateStats(vms) {
-  const total = vms.length;
-  const running = vms.filter(v => v.status === "running").length;
-  const stopped = total - running;
-
-  const a = document.getElementById("statTotal");
-  const b = document.getElementById("statRunning");
-  const c = document.getElementById("statStopped");
-
-  if (a) a.textContent = String(total);
-  if (b) b.textContent = String(running);
-  if (c) c.textContent = String(stopped);
+function shownId(vmid, role) {
+  const id = Number(vmid);
+  return (role === "admin") ? id : (id % 100);
 }
 
 function pushHistory() {
@@ -155,17 +127,43 @@ function restoreOpenBubbles() {
 
 function applyFilters(vms) {
   let out = vms;
-
   if (uiState.poolFilter) out = out.filter(v => (v.pool || "") === uiState.poolFilter);
   if (uiState.statusFilter === "running") out = out.filter(v => v.status === "running");
   if (uiState.statusFilter === "stopped") out = out.filter(v => v.status !== "running");
-
   return out;
 }
 
-function shownId(vmid, role) {
-  const id = Number(vmid);
-  return (role === "admin") ? id : (id % 100);
+function markPending(vmid, kind, ms = 6000) {
+  actionState.pending.set(Number(vmid), { kind, until: Date.now() + ms });
+}
+
+function getPending(vmid) {
+  const k = Number(vmid);
+  const p = actionState.pending.get(k);
+  if (!p) return null;
+  if (Date.now() > p.until) { actionState.pending.delete(k); return null; }
+  return p.kind;
+}
+
+function scheduleRefresh(ms = 5000) {
+  clearTimeout(actionState.refreshTimer);
+  actionState.refreshTimer = setTimeout(() => {
+    refreshVmList().catch(() => {});
+  }, ms);
+}
+
+function updateStats(vms) {
+  const total = vms.length;
+  const running = vms.filter(v => v.status === "running").length;
+  const stopped = total - running;
+
+  const a = document.getElementById("statTotal");
+  const b = document.getElementById("statRunning");
+  const c = document.getElementById("statStopped");
+
+  if (a) a.textContent = String(total);
+  if (b) b.textContent = String(running);
+  if (c) c.textContent = String(stopped);
 }
 
 function makeDot(status) {
@@ -173,161 +171,6 @@ function makeDot(status) {
   dot.className = "vm-dot";
   dot.dataset.state = status || "";
   return dot;
-}
-
-function makeVmRow(vm, role) {
-  const row = document.createElement("div");
-  row.className = "vm-row";
-
-  const left = document.createElement("div");
-  left.className = "vm-row-left";
-  const dotEl = makeDot(vm.status);
-left.appendChild(dotEl);
-
-  const title = document.createElement("div");
-  title.className = "vm-row-title";
-const pending = getPending(vm.vmid);
-const displayStatus = pending === "starting" ? "starting" : pending === "stopping" ? "stopping" : vm.status;
-
-// tečka: pending = žlutá, jinak podle reálného stavu
-dotEl.dataset.state = pending ? "pending" : (vm.status || "");
-
-title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}`;
-  left.appendChild(title);
-
-  const actions = document.createElement("div");
-  actions.className = "vm-actions";
-
-  const btnConsole = document.createElement("button");
-  btnConsole.textContent = "Konzole";
-  btnConsole.className = "btn btn-sm btn-outline-primary";
-  btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
-
-  const btnStart = document.createElement("button");
-  btnStart.textContent = "Start";
-  btnStart.className = "btn btn-sm btn-success";
- btnStart.onclick = async () => {
-  try {
-    markPending(vm.vmid, "starting", 6000);
-    dotEl.dataset.state = "pending";
-    title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting`;
-
-    setStatus("Spouštím…", "success", 3000);
-    scheduleRefresh(5000);
-
-    await apiPost(`/api/vm/${vm.vmid}/start`, {});
-  } catch (e) {
-    setStatus(String(e.message || e), "error", 6000);
-    scheduleRefresh(0);
-  }
-};
-
-btnStop.onclick = async () => {
-  try {
-    markPending(vm.vmid, "stopping", 6000);
-    dotEl.dataset.state = "pending";
-    title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
-
-    setStatus("Vypínám…", "success", 3000);
-    scheduleRefresh(5000);
-
-    await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-  } catch (e) {
-    setStatus(String(e.message || e), "error", 6000);
-    scheduleRefresh(0);
-  }
-};
-
-  actions.appendChild(btnConsole);
-  actions.appendChild(btnStart);
-  actions.appendChild(btnStop);
-
-  {
-  const btnDelete = document.createElement("button");
-  btnDelete.textContent = "Smazat";
-  btnDelete.className = "btn btn-sm btn-danger";
-
-  btnDelete.onclick = async () => {
-    try {
-      // preventivně – u running nabídni stop+delete
-      if (vm.status === "running") {
-        const ok = confirm("VM běží. Nejdřív ji vypnout a pak smazat?");
-        if (!ok) return;
-        setStatus("Vypínám…", "success");
-        await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-        await new Promise(r => setTimeout(r, 800));
-      }
-
-      if (!confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
-
-    markPending(vm.vmid, "deleting", 15000);
-    row.remove();
-    setStatus("Mažu…", "success", 3000);
-    scheduleRefresh(5000);
-
-    const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
-    if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
-    const d = await parseResponse(r);
-    if (!r.ok) throw new Error(d?.error || String(d));
-
-    setStatus("Smazáno.", "success", 3000);
-    scheduleRefresh(0);
-  } catch (e) {
-    setStatus(String(e.message || e), "error", 6000);
-    scheduleRefresh(0);
-  }
-};
-
-      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
-      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
-      const d = await parseResponse(r);
-      if (!r.ok) throw new Error(d?.error || String(d));
-
-      setStatus("Smazáno.", "success");
-      await refreshVmList();
-    } catch (e) {
-      setStatus(String(e.message || e), "error");
-      // když delete failne, necháme to být a refresh to vrátí zpět
-      await refreshVmList();
-    }
-  };
-
-  actions.appendChild(btnDelete);
-}
-
-  row.appendChild(left);
-  row.appendChild(actions);
-  return row;
-}
-
-function setCardClickable(statId, handler) {
-  const el = document.getElementById(statId);
-  if (!el) return;
-  const card = el.closest(".card");
-  if (!card) return;
-  card.style.cursor = "pointer";
-  card.addEventListener("click", handler);
-}
-
-function initDashboardFilters() {
-  setCardClickable("statRunning", () => {
-    pushHistory();
-    uiState.statusFilter = (uiState.statusFilter === "running") ? null : "running";
-    refreshVmList();
-  });
-
-  setCardClickable("statStopped", () => {
-    pushHistory();
-    uiState.statusFilter = (uiState.statusFilter === "stopped") ? null : "stopped";
-    refreshVmList();
-  });
-
-  setCardClickable("statTotal", () => {
-    pushHistory();
-    uiState.statusFilter = null;
-    uiState.poolFilter = null;
-    refreshVmList();
-  });
 }
 
 let quotaCache = null;
@@ -369,7 +212,6 @@ function renderQuotaBox() {
   const rRam  = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
   const rDisk = clamp01(quotaCache.diskBytes / QUOTA.maxDiskBytes);
 
-  // projekce po vytvoření (CPU/RAM/DISK)
   const selCores = Number(document.getElementById("cores")?.value || 0);
   const selMemMiB = Number(document.getElementById("memory")?.value || 0);
   const selRamBytes = selMemMiB * 1024 * 1024;
@@ -387,51 +229,23 @@ function renderQuotaBox() {
   const rDiskAfter = clamp01(afterDiskBytes / QUOTA.maxDiskBytes);
 
   box.innerHTML = `
-    <div class="small fw-semibold d-flex justify-content-between">
-      <span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span>
-    </div>
-    <div class="progress mb-2" style="height:10px;">
-      <div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu*100).toFixed(0)}%"></div>
-    </div>
-    <div class="small text-muted d-flex justify-content-between mb-2">
-      <span>Po vytvoření</span><span>${afterCores}/${QUOTA.maxCores}</span>
-    </div>
-    <div class="progress mb-3" style="height:8px;">
-      <div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter*100).toFixed(0)}%"></div>
-    </div>
+    <div class="small fw-semibold d-flex justify-content-between"><span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu*100).toFixed(0)}%"></div></div>
+    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${afterCores}/${QUOTA.maxCores}</span></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter*100).toFixed(0)}%"></div></div>
 
-    <div class="small fw-semibold d-flex justify-content-between">
-      <span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span>
-    </div>
-    <div class="progress mb-2" style="height:10px;">
-      <div class="progress-bar ${barClass(rRam)}" style="width:${(rRam*100).toFixed(0)}%"></div>
-    </div>
-    <div class="small text-muted d-flex justify-content-between mb-2">
-      <span>Po vytvoření</span><span>${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</span>
-    </div>
-    <div class="progress mb-3" style="height:8px;">
-      <div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter*100).toFixed(0)}%"></div>
-    </div>
+    <div class="small fw-semibold d-flex justify-content-between"><span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rRam)}" style="width:${(rRam*100).toFixed(0)}%"></div></div>
+    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</span></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter*100).toFixed(0)}%"></div></div>
 
-    <div class="small fw-semibold d-flex justify-content-between">
-      <span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span>
-    </div>
-    <div class="progress mb-2" style="height:10px;">
-      <div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk*100).toFixed(0)}%"></div>
-    </div>
-    <div class="small text-muted d-flex justify-content-between mb-2">
-      <span>Po vytvoření</span><span>${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</span>
-    </div>
-    <div class="progress mb-3" style="height:8px;">
-      <div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter*100).toFixed(0)}%"></div>
-    </div>
+    <div class="small fw-semibold d-flex justify-content-between"><span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk*100).toFixed(0)}%"></div></div>
+    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</span></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter*100).toFixed(0)}%"></div></div>
 
-    <div class="small fw-semibold d-flex justify-content-between">
-      <span>Počet VM</span><span>${usedVms}/${QUOTA.maxVms}</span>
-    </div>
-    <div class="progress" style="height:10px;">
-      <div class="progress-bar ${barClass(rVms)}" style="width:${(rVms*100).toFixed(0)}%"></div>
-    </div>
+    <div class="small fw-semibold d-flex justify-content-between"><span>Počet VM</span><span>${usedVms}/${QUOTA.maxVms}</span></div>
+    <div class="progress" style="height:10px;"><div class="progress-bar ${barClass(rVms)}" style="width:${(rVms*100).toFixed(0)}%"></div></div>
   `;
 }
 
@@ -448,6 +262,153 @@ async function refreshQuotaFromList() {
   }
 }
 
+function makeVmRow(vm, role) {
+  const row = document.createElement("div");
+  row.className = "vm-row";
+
+  const left = document.createElement("div");
+  left.className = "vm-row-left";
+
+  const dotEl = makeDot(vm.status);
+  left.appendChild(dotEl);
+
+  const title = document.createElement("div");
+  title.className = "vm-row-title";
+
+  const pending = getPending(vm.vmid);
+  const displayStatus = pending === "starting" ? "starting" : pending === "stopping" ? "stopping" : vm.status;
+  dotEl.dataset.state = pending ? "pending" : (vm.status || "");
+
+  title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}`;
+  left.appendChild(title);
+
+  const actions = document.createElement("div");
+  actions.className = "vm-actions";
+
+  const btnConsole = document.createElement("button");
+  btnConsole.textContent = "Konzole";
+  btnConsole.className = "btn btn-sm btn-outline-primary";
+  btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+
+  const btnStart = document.createElement("button");
+  btnStart.textContent = "Start";
+  btnStart.className = "btn btn-sm btn-success";
+  btnStart.onclick = async () => {
+    try {
+      markPending(vm.vmid, "starting", 6000);
+      dotEl.dataset.state = "pending";
+      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting`;
+
+      setStatus("Spouštím…", "success", 3000);
+      scheduleRefresh(5000);
+
+      await apiPost(`/api/vm/${vm.vmid}/start`, {});
+    } catch (e) {
+      setStatus(String(e.message || e), "error", 6000);
+      scheduleRefresh(0);
+    }
+  };
+
+  const btnStop = document.createElement("button");
+  btnStop.textContent = "Stop";
+  btnStop.className = "btn btn-sm btn-warning";
+  btnStop.onclick = async () => {
+    try {
+      markPending(vm.vmid, "stopping", 6000);
+      dotEl.dataset.state = "pending";
+      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
+
+      setStatus("Vypínám…", "success", 3000);
+      scheduleRefresh(5000);
+
+      await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+    } catch (e) {
+      setStatus(String(e.message || e), "error", 6000);
+      scheduleRefresh(0);
+    }
+  };
+
+  const btnDelete = document.createElement("button");
+  btnDelete.textContent = "Smazat";
+  btnDelete.className = "btn btn-sm btn-danger";
+  btnDelete.onclick = async () => {
+    try {
+      if (vm.status === "running") {
+        const ok = confirm("VM běží. Nejdřív ji vypnout a pak smazat?");
+        if (!ok) return;
+
+        markPending(vm.vmid, "stopping", 6000);
+        dotEl.dataset.state = "pending";
+        title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
+
+        setStatus("Vypínám…", "success", 3000);
+        scheduleRefresh(5000);
+
+        await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+        await new Promise(r => setTimeout(r, 800));
+      }
+
+      if (!confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
+
+      markPending(vm.vmid, "deleting", 15000);
+      row.remove();
+      setStatus("Mažu…", "success", 3000);
+      scheduleRefresh(5000);
+
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+      const d = await parseResponse(r);
+      if (!r.ok) throw new Error(d?.error || String(d));
+
+      setStatus("Smazáno.", "success", 3000);
+      scheduleRefresh(0);
+    } catch (e) {
+      setStatus(String(e.message || e), "error", 6000);
+      scheduleRefresh(0);
+      refreshVmList().catch(() => {});
+    }
+  };
+
+  actions.appendChild(btnConsole);
+  actions.appendChild(btnStart);
+  actions.appendChild(btnStop);
+  actions.appendChild(btnDelete);
+
+  row.appendChild(left);
+  row.appendChild(actions);
+  return row;
+}
+
+function setCardClickable(statId, handler) {
+  const el = document.getElementById(statId);
+  if (!el) return;
+  const card = el.closest(".card");
+  if (!card) return;
+  card.style.cursor = "pointer";
+  card.addEventListener("click", handler);
+}
+
+function initDashboardFilters() {
+  setCardClickable("statRunning", () => {
+    pushHistory();
+    uiState.statusFilter = (uiState.statusFilter === "running") ? null : "running";
+    refreshVmList();
+  });
+
+  setCardClickable("statStopped", () => {
+    pushHistory();
+    uiState.statusFilter = (uiState.statusFilter === "stopped") ? null : "stopped";
+    refreshVmList();
+  });
+
+  setCardClickable("statTotal", () => {
+    pushHistory();
+    uiState.statusFilter = null;
+    uiState.poolFilter = null;
+    refreshVmList();
+  });
+}
+
 async function refreshVmList() {
   const out = document.getElementById("out");
   if (!out) return;
@@ -456,17 +417,18 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-// skryj VM v procesu mazání, aby se nevracely po refreshi
-const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
-  
-  updateStats(vmsAll);
+
+  // schovej VM v procesu mazání, ať se nevrátí po refreshi
+  const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
+
+  updateStats(vmsAllFiltered);
 
   const role = getRole();
   const page = document.body?.dataset?.page || "";
   if (page === "create") return;
 
   const isDashboard = page === "dashboard";
-  const vms = applyFilters(vmsAll);
+  const vms = applyFilters(vmsAllFiltered);
 
   out.innerHTML = "";
   if (!vms.length) {
@@ -474,7 +436,7 @@ const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
     return;
   }
 
-  const hasPool = vmsAll.some(v => v.pool !== undefined && v.pool !== null);
+  const hasPool = vmsAllFiltered.some(v => v.pool !== undefined && v.pool !== null);
 
   if (role === "admin" && isDashboard && hasPool) {
     const map = new Map();
@@ -509,7 +471,7 @@ const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
         pushHistory();
         uiState.poolFilter = (uiState.poolFilter === p) ? null : p;
         uiState.openPools.add(p);
-        setTimeout(refreshVmList, 0);
+        setTimeout(() => { refreshVmList().catch(() => {}); }, 0);
       });
 
       const content = document.createElement("div");
@@ -542,30 +504,31 @@ document.addEventListener("DOMContentLoaded", () => {
         uiState.poolFilter = null;
         uiState.openPools = new Set();
       }
-      refreshVmList();
+      refreshVmList().catch(() => {});
     });
   }
 
   if (!isCreate) {
     const btnRefresh = document.getElementById("refreshBtn");
-    if (btnRefresh) btnRefresh.addEventListener("click", refreshVmList);
-    refreshVmList().catch(e => setStatus(String(e.message || e), "error"));
+    if (btnRefresh) btnRefresh.addEventListener("click", () => refreshVmList().catch(() => {}));
+    refreshVmList().catch(e => setStatus(String(e.message || e), "error", 6000));
   }
 
- if (isCreate) {
-  refreshQuotaFromList();
-  const coresEl = document.getElementById("cores");
-  const memEl = document.getElementById("memory");
-  const diskEl = document.getElementById("diskGb");
-  if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
-  if (memEl) memEl.addEventListener("input", renderQuotaBox);
-  if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
-}
+  if (isCreate) {
+    refreshQuotaFromList();
+    const coresEl = document.getElementById("cores");
+    const memEl = document.getElementById("memory");
+    const diskEl = document.getElementById("diskGb");
+    if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
+    if (memEl) memEl.addEventListener("input", renderQuotaBox);
+    if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
+  }
 
   const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
       try {
+        btnCreate.disabled = true;
         setStatus("Vytvářím…", "success");
 
         const name = (document.getElementById("name")?.value || "").trim();
@@ -576,32 +539,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const slotRaw = (document.getElementById("slot")?.value || "").trim();
         const slot = slotRaw === "" ? null : Number(slotRaw);
 
-        if (!name) { setStatus("Chybí název VM.", "error"); return; }
-        if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error"); return; }
-        if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error"); return; }
-        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
-const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
-const diskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
+        const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
+        const diskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
 
-if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < 5 || diskGb > 250)) {
-  setStatus("Disk musí být 5–250 GB.", "error");
-  return;
-}
-        
-        localStorage.setItem("pendingCreate", JSON.stringify({
-          ts: Date.now(),
-          name,
-          pool: localStorage.getItem("pool") || null
-        }));
+        if (!name) { setStatus("Chybí název VM.", "error", 6000); return; }
+        if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error", 6000); return; }
+        if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error", 6000); return; }
+        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být 0–99.", "error", 6000); return; }
+        if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < 5 || diskGb > 250)) { setStatus("Disk musí být 5–250 GB.", "error", 6000); return; }
+
+        localStorage.setItem("pendingCreate", JSON.stringify({ ts: Date.now(), name }));
 
         await apiPost("/api/vm/create", { name, template, cores, memory, slot, diskGb });
 
         localStorage.removeItem("pendingCreate");
-        setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
+        setStatus("Hotovo. Přesměrovávám na Moje VM…", "success", 3000);
         setTimeout(() => { window.location.href = "myvm.html"; }, 600);
       } catch (e) {
         localStorage.removeItem("pendingCreate");
-        setStatus(String(e.message || e), "error");
+        setStatus(String(e.message || e), "error", 6000);
+      } finally {
+        btnCreate.disabled = false;
       }
     });
   }
