@@ -542,6 +542,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
         const diskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
 
+        const vmUser = (document.getElementById("vmUser")?.value || "").trim();
+        const vmPass = (document.getElementById("vmPass")?.value || "").trim();
+
+        if (!vmUser) { setStatus("Chybí uživatel.", "error", 6000); return; }
+        if (!vmPass) { setStatus("Chybí heslo.", "error", 6000); return; }
+        if (vmPass.length < 4) { setStatus("Heslo musí mít alespoň 4 znaky.", "error", 6000); return; }
+        
         if (!name) { setStatus("Chybí název VM.", "error", 6000); return; }
         if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error", 6000); return; }
         if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error", 6000); return; }
@@ -550,8 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         localStorage.setItem("pendingCreate", JSON.stringify({ ts: Date.now(), name }));
 
-        await apiPost("/api/vm/create", { name, template, cores, memory, slot, diskGb });
-
+        await apiPost("/api/vm/create", { name, template, cores, memory, slot, diskGb, vmUser, vmPass });
         localStorage.removeItem("pendingCreate");
         setStatus("Hotovo. Přesměrovávám na Moje VM…", "success", 3000);
         setTimeout(() => { window.location.href = "myvm.html"; }, 600);
