@@ -494,6 +494,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const page = document.body?.dataset?.page || "";
   const isCreate = page === "create";
 
+  const t = document.getElementById("togglePass");
+const p = document.getElementById("vmPass");
+if (t && p) {
+  t.addEventListener("click", () => {
+    const show = p.type === "password";
+    p.type = show ? "text" : "password";
+    t.textContent = show ? "Skrýt" : "Zobrazit";
+  });
+}
+
   initDashboardFilters();
 
   const backBtn = document.getElementById("filterBack");
