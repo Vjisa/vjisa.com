@@ -513,7 +513,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error"); return; }
         if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error"); return; }
         if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
-if (!Number.isInteger(disk) || disk < 5 || disk > 250) {setStatus("Disk musí být 5-250 GB", "error"); return; }
+const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
+const diskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
+
+if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < 5 || diskGb > 250)) {
+  setStatus("Disk musí být 5–250 GB.", "error");
+  return;
+}
         
         localStorage.setItem("pendingCreate", JSON.stringify({
           ts: Date.now(),
@@ -521,7 +527,7 @@ if (!Number.isInteger(disk) || disk < 5 || disk > 250) {setStatus("Disk musí b�
           pool: localStorage.getItem("pool") || null
         }));
 
-        await apiPost("/api/vm/create", { name, template, cores, memory, slot });
+        await apiPost("/api/vm/create", { name, template, cores, memory, slot, diskGb });
 
         localStorage.removeItem("pendingCreate");
         setStatus("Hotovo. Přesměrovávám na Moje VM…", "success");
