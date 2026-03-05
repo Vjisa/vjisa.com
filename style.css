@@ -799,3 +799,5 @@ body.theme-dark {
   background-color: rgba(30, 41, 59, 0.95) !important;
   border-color: rgba(148, 163, 184, 0.55) !important;
 }
+
+.vm-dot[data-state="pending"] { background: #f59e0b; } /* žlutá */
