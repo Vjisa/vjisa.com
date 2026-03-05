@@ -191,40 +191,44 @@ function makeVmRow(vm, role) {
   actions.appendChild(btnStart);
   actions.appendChild(btnStop);
 
-  if (role === "admin") {
-    const btnDelete = document.createElement("button");
-    btnDelete.textContent = "Smazat";
-    btnDelete.className = "btn btn-sm btn-danger";
-    btnDelete.onclick = async () => {
-      try {
-        if (vm.status === "running") {
-          const ok = confirm(`VM ${vm.vmid} běží.\nNejdřív ji vypnout a pak smazat?`);
-          if (!ok) return;
-          setStatus("Vypínám…", "success");
-          await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-          await new Promise(r => setTimeout(r, 800));
-        }
+  {
+  const btnDelete = document.createElement("button");
+  btnDelete.textContent = "Smazat";
+  btnDelete.className = "btn btn-sm btn-danger";
 
-        if (!confirm(`Opravdu smazat VM ${vm.vmid}?`)) return;
-
-        // okamžitě schovej z UI
-        row.style.display = "none";
-        setStatus("Mažu…", "success");
-
-        const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
-        if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
-        const d = await parseResponse(r);
-        if (!r.ok) throw new Error(d?.error || String(d));
-
-        setStatus("Smazáno.", "success");
-        await refreshVmList();
-      } catch (e) {
-        row.style.display = "";
-        setStatus(String(e.message || e), "error");
+  btnDelete.onclick = async () => {
+    try {
+      // preventivně – u running nabídni stop+delete
+      if (vm.status === "running") {
+        const ok = confirm("VM běží. Nejdřív ji vypnout a pak smazat?");
+        if (!ok) return;
+        setStatus("Vypínám…", "success");
+        await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+        await new Promise(r => setTimeout(r, 800));
       }
-    };
-    actions.appendChild(btnDelete);
-  }
+
+      if (!confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
+
+      // OKAMŽITĚ pryč z UI
+      row.remove();
+      setStatus("Mažu…", "success");
+
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
+      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+      const d = await parseResponse(r);
+      if (!r.ok) throw new Error(d?.error || String(d));
+
+      setStatus("Smazáno.", "success");
+      await refreshVmList();
+    } catch (e) {
+      setStatus(String(e.message || e), "error");
+      // když delete failne, necháme to být a refresh to vrátí zpět
+      await refreshVmList();
+    }
+  };
+
+  actions.appendChild(btnDelete);
+}
 
   row.appendChild(left);
   row.appendChild(actions);
@@ -505,9 +509,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!name) { setStatus("Chybí název VM.", "error"); return; }
         if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error"); return; }
-        if (!Number.isInteger(memory) || memory < 512 || memory > 16384) { setStatus("RAM musí být 512–16384 MB.", "error"); return; }
+        if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error"); return; }
         if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být celé číslo 0–99.", "error"); return; }
-
+if (!Number.isInteger(disk) || disk < 5 || disk > 250) {setStatus("Disk musí být 5-250 GB", "error"); return; }
+        
         localStorage.setItem("pendingCreate", JSON.stringify({
           ts: Date.now(),
           name,
