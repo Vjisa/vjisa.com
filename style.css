@@ -830,3 +830,35 @@ body.theme-dark {
   --bs-table-color: rgba(226, 232, 240, 0.92);
   --bs-table-border-color: rgba(148, 163, 184, 0.18);
 }
+
+/* Dark mode – formuláře */
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark .input-group .btn-outline-secondary {
+  background: rgba(2, 6, 23, 0.72) !important;
+  color: rgba(226, 232, 240, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+.theme-dark .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.85) !important;
+}
+
+.theme-dark .input-group .btn-outline-secondary:hover {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: rgba(226, 232, 240, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+}
+
+/* Dark mode – autofill ve Chromium */
+.theme-dark input:-webkit-autofill,
+.theme-dark input:-webkit-autofill:hover,
+.theme-dark input:-webkit-autofill:focus,
+.theme-dark textarea:-webkit-autofill,
+.theme-dark select:-webkit-autofill {
+  -webkit-text-fill-color: rgba(226, 232, 240, 0.95) !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.72) inset !important;
+  box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.72) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: rgba(226, 232, 240, 0.95) !important;
+}
