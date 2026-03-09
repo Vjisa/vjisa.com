@@ -21,6 +21,38 @@ const actionState = {
   statusTimer: null
 };
 
+const UI_PREFS_KEY = "mojevm.uiPrefs";
+
+function loadUiPrefs() {
+  try {
+    return {
+      autoRefreshInterval: "5000",
+      confirmDangerousActions: true,
+      ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}"),
+    };
+  } catch {
+    return {
+      autoRefreshInterval: "5000",
+      confirmDangerousActions: true,
+    };
+  }
+}
+
+function saveUiPrefs(next) {
+  const merged = { ...loadUiPrefs(), ...next };
+  localStorage.setItem(UI_PREFS_KEY, JSON.stringify(merged));
+  return merged;
+}
+
+function getAutoRefreshMs() {
+  const n = Number(loadUiPrefs().autoRefreshInterval || 5000);
+  return Number.isFinite(n) ? n : 5000;
+}
+
+function confirmDangerousActionsEnabled() {
+  return !!loadUiPrefs().confirmDangerousActions;
+}
+
 function getRole() {
   return localStorage.getItem("role") || "user";
 }
@@ -145,7 +177,7 @@ function getPending(vmid) {
   return p.kind;
 }
 
-function scheduleRefresh(ms = 5000) {
+function scheduleRefresh(ms = getAutoRefreshMs()) {
   clearTimeout(actionState.refreshTimer);
   actionState.refreshTimer = setTimeout(() => {
     refreshVmList().catch(() => {});
@@ -348,7 +380,7 @@ function makeVmRow(vm, role) {
         await new Promise(r => setTimeout(r, 800));
       }
 
-      if (!confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
+      if (confirmDangerousActionsEnabled() && !confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
 
       markPending(vm.vmid, "deleting", 15000);
       row.remove();
@@ -579,4 +611,26 @@ if (t && p) {
       }
     });
   }
+
+  const autoRefreshEl = document.getElementById("autoRefreshInterval");
+const confirmDangerousEl = document.getElementById("confirmDangerousActions");
+
+if (autoRefreshEl || confirmDangerousEl) {
+  const prefs = loadUiPrefs();
+
+  if (autoRefreshEl) {
+    autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
+    autoRefreshEl.addEventListener("change", () => {
+      saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
+    });
+  }
+
+  if (confirmDangerousEl) {
+    confirmDangerousEl.checked = !!prefs.confirmDangerousActions;
+    confirmDangerousEl.addEventListener("change", () => {
+      saveUiPrefs({ confirmDangerousActions: confirmDangerousEl.checked });
+    });
+  }
+}
+
 });
