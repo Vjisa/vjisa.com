@@ -51,115 +51,114 @@
         </div>
       </div>
 
-      <div class="row g-3">
-        <!-- LEVÝ: formulář -->
-        <div class="col-12 col-lg-7">
-          <div class="card">
-            <div class="card-body p-4">
-              <h2 class="h5 mb-3">Parametry</h2>
+      <div class="row g-3 align-items-start">
+  <!-- LEVÝ: formulář -->
+  <div class="col-12 col-xl-7">
+    <div class="card">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Parametry</h2>
 
-              <div class="mb-3">
-                <label class="form-label" for="name">
-                  Název VM
-                  <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní.">i</span>
-                </label>
-                <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
-              </div>
+        <div class="mb-3">
+          <label class="form-label" for="name">
+            Název VM
+            <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní.">i</span>
+          </label>
+          <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
+        </div>
 
-              <div class="mb-3">
-                <label class="form-label" for="template">Šablona (OS)</label>
-                <select class="form-select" id="template">
-                  <option value="ubuntu">Ubuntu Server</option>
-                  <option value="debian">Debian</option>
-                  <option value="windows">Windows</option>
-                </select>
-              </div>
+        <div class="mb-3">
+          <label class="form-label" for="template">Šablona (OS)</label>
+          <select class="form-select" id="template">
+            <option value="ubuntu">Ubuntu Server</option>
+            <option value="debian">Debian</option>
+            <option value="windows">Windows</option>
+          </select>
+        </div>
 
-              <div class="row g-3">
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="cores">
-                    CPU (Počet jader)
-                    <span class="vm-info" data-tip="Celkový limit uživatele je 8 jader přes všechny VM.">i</span>
-                  </label>
-                  <input class="form-control" id="cores" type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
-                </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="cores">
+              CPU (Počet jader)
+              <span class="vm-info" data-tip="Celkový limit uživatele je 8 jader přes všechny VM.">i</span>
+            </label>
+            <input class="form-control" id="cores" type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
+          </div>
 
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="memory">
-                    RAM (MB)
-                    <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny VM.">i</span>
-                  </label>
-                  <input class="form-control" id="memory"
-       type="number" min="256" max="20480" step="256" inputmode="numeric"
-       list="ramOptions" value="2048" />
-<datalist id="ramOptions">
-  <option value="256"></option>
-  <option value="512"></option>
-  <option value="1024"></option>
-  <option value="2048"></option>
-  <option value="4096"></option>
-  <option value="8192"></option>
-  <option value="16384"></option>
-  <option value="20480"></option>
-</datalist>
-                </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="memory">
+              RAM (MB)
+              <span class="vm-info" data-tip="Celkový limit uživatele je 20 GB RAM přes všechny VM.">i</span>
+            </label>
+            <input class="form-control" id="memory"
+                   type="number" min="256" max="20480" step="256" inputmode="numeric"
+                   list="ramOptions" value="2048" />
+            <datalist id="ramOptions">
+              <option value="256"></option>
+              <option value="512"></option>
+              <option value="1024"></option>
+              <option value="2048"></option>
+              <option value="4096"></option>
+              <option value="8192"></option>
+              <option value="16384"></option>
+              <option value="20480"></option>
+            </datalist>
+          </div>
 
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="diskGb">
-                    Disk (GB)
-                    <span class="vm-info" data-tip="Celkový limit disku je 250 GB (virtuální maxdisk). Pozn.: aby se disk reálně nastavil při vytvoření, musí se to posílat v create requestu a zpracovat backendem.">i</span>
-                  </label>
-                  <input class="form-control" id="diskGb" type="number" min="5" max="250" step="5" inputmode="numeric" value="20" />
-                </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="diskGb">
+              Disk (GB)
+              <span class="vm-info" data-tip="Celkový limit disku je 250 GB.">i</span>
+            </label>
+            <input class="form-control" id="diskGb" type="number" min="5" max="250" step="5" inputmode="numeric" value="20" />
+          </div>
 
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="slot">ID (0–99)</label>
-                  <input class="form-control" id="slot" type="number" min="0" max="99" step="1" inputmode="numeric" placeholder="nepovinné" />
-                  <div class="text-muted small mt-1"></div>
-                </div>
-              </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="slot">ID (0–99)</label>
+            <input class="form-control" id="slot" type="number" min="0" max="99" step="1" inputmode="numeric" placeholder="nepovinné" />
+            <div class="text-muted small mt-1">User uvidí slot, admin plné VMID.</div>
+          </div>
 
-<div class="row g-3 mb-3">
-  <div class="col-12 col-md-6">
-    <label class="form-label" for="vmUser">Uživatel</label>
-    <input class="form-control" id="vmUser" placeholder="např. student" required />
-    <div class="text-muted small mt-1">Použije se pro Ubuntu/Debian (Cloud-Init).</div>
-  </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="vmUser">Uživatel</label>
+            <input class="form-control" id="vmUser" placeholder="např. test" required />
+            <div class="text-muted small mt-1">Použije se pro Ubuntu/Debian (Cloud-Init).</div>
+          </div>
 
-  <div class="col-12 col-md-6">
-  <label class="form-label" for="vmPass">Heslo</label>
-  <div class="input-group">
-    <input class="form-control" id="vmPass" type="password" placeholder="povinné" required />
-    <button class="btn btn-outline-secondary" id="togglePass" type="button">Zobrazit</button>
-  </div>
-  <div class="text-muted small mt-1">Ubuntu/Debian (Cloud-Init). Windows zatím ne.</div>
-</div>
-              
-              <div class="d-flex gap-2 mt-4">
-                <button class="btn btn-light" id="btnTest" type="button">Test backendu</button>
-                <button class="btn btn-primary" id="btnCreate" type="button">Vytvořit VM</button>
-              </div>
-
-              <div class="small mt-3" id="status">Připraveno.</div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="vmPass">Heslo</label>
+            <div class="input-group">
+              <input class="form-control" id="vmPass" type="password" placeholder="povinné" required />
+              <button class="btn btn-outline-secondary" id="togglePass" type="button">Zobrazit</button>
             </div>
+            <div class="text-muted small mt-1">Ubuntu/Debian (Cloud-Init). Windows zatím ne.</div>
           </div>
         </div>
 
-        <!-- PRAVÝ: quota panel -->
-        <div class="col-12 col-lg-5">
-          <div class="card">
-            <div class="card-body p-4">
-              <h2 class="h5 mb-2">Využití limitů</h2>
-              <div class="text-muted small mb-3">
-                Limity platí součtem přes všechny tvoje VM (max 100 VM, 8 CPU, 20 GB RAM, 250 GB disk).
-              </div>
-              <div id="quotaBox"><div class="small text-muted">Načítám…</div></div>
-            </div>
-          </div>
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-light" id="btnTest" type="button">Test backendu</button>
+          <button class="btn btn-primary" id="btnCreate" type="button">Vytvořit VM</button>
+        </div>
+
+        <div class="small mt-3" id="status">Připraveno.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRAVÝ: limity -->
+  <div class="col-12 col-xl-5">
+    <div class="card sticky-top" style="top: 1rem;">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-2">Využití limitů</h2>
+        <div class="text-muted small mb-3">
+          Limity platí součtem přes všechny tvoje VM.
+        </div>
+        <div id="quotaBox">
+          <div class="small text-muted">Načítám…</div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
+</div>
 
   <script src="auth.js" defer></script>
   <script src="app.js" defer></script>
