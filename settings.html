@@ -76,6 +76,73 @@
     </main>
   </div>
 
+<div class="card mt-3">
+  <div class="card-body p-4">
+    <h2 class="h5 mb-3">Chování rozhraní</h2>
+
+    <div class="mb-3">
+      <label class="form-label" for="autoRefreshInterval">Automatická obnova stavu</label>
+      <select class="form-select" id="autoRefreshInterval">
+        <option value="0">Vypnuto</option>
+        <option value="5000" selected>Každých 5 sekund</option>
+        <option value="10000">Každých 10 sekund</option>
+        <option value="15000">Každých 15 sekund</option>
+      </select>
+      <div class="text-muted small mt-1">Použije se pro Dashboard a Moje VM.</div>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="confirmDangerousActions" checked>
+      <label class="form-check-label" for="confirmDangerousActions">
+        Potvrzovat mazání a vypnutí VM
+      </label>
+    </div>
+  </div>
+</div>
+  
+<div class="card mt-3">
+  <div class="card-body p-4">
+    <h2 class="h5 mb-3">Nápověda a chování portálu</h2>
+
+    <div class="mb-3">
+      <h3 class="h6 mb-2">Dashboard</h3>
+      <p class="text-muted mb-2">
+        Dashboard zobrazuje přehled virtuálních strojů, počty spuštěných a vypnutých VM a u administrátora i seskupení podle uživatelů.
+        Kliknutím na statistiky lze filtrovat zobrazení.
+      </p>
+    </div>
+
+    <div class="mb-3">
+      <h3 class="h6 mb-2">Moje VM</h3>
+      <p class="text-muted mb-2">
+        Stránka obsahuje seznam tvých VM a akce Start, Stop, Konzole a Smazat. Po spuštění nebo vypnutí se stav automaticky po chvíli aktualizuje.
+      </p>
+    </div>
+
+    <div class="mb-3">
+      <h3 class="h6 mb-2">Vytvořit VM</h3>
+      <p class="text-muted mb-2">
+        Při vytváření VM se kontrolují součtové limity uživatele. Vytvoření může trvat déle, protože probíhá klonování šablony a konfigurace VM.
+        U Ubuntu a Debianu se uživatel a heslo nastavují přes Cloud-Init.
+      </p>
+    </div>
+
+    <div class="mb-3">
+      <h3 class="h6 mb-2">Mazání a změna stavu</h3>
+      <p class="text-muted mb-2">
+        Při mazání běžící VM může být nejprve vyžadováno její vypnutí. Po potvrzení se VM z rozhraní odstraní ihned a stav se následně synchronizuje s backendem.
+      </p>
+    </div>
+
+    <div>
+      <h3 class="h6 mb-2">Omezení a poznámky</h3>
+      <p class="text-muted mb-0">
+        Uživatelské jméno a heslo se zatím automaticky aplikují jen pro Linux šablony s Cloud-Init. U Windows se tato funkce zatím nepoužívá.
+      </p>
+    </div>
+  </div>
+</div>
+  
   <script src="auth.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
