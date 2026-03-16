@@ -1,23 +1,82 @@
-/* app.js – stabilní: bubliny, filtry, quota, pending start/stop/delete, auto refresh, auto-hide status */
 var API_BASE = window.API_BASE || (window.API_BASE = "https://api.jisavl22.fun");
 
 const QUOTA = {
   maxVms: 100,
   maxCores: 8,
-  maxRamBytes: 20 * 1024 * 1024 * 1024,   // 20 GB
-  maxDiskBytes: 250 * 1024 * 1024 * 1024, // 250 GB (virtuální maxdisk)
+  maxRamBytes: 20 * 1024 * 1024 * 1024,
+  maxDiskBytes: 250 * 1024 * 1024 * 1024,
+};
+
+const TEMPLATE_META = {
+  ubuntu2404: {
+    label: "Ubuntu 24.04",
+    vmid: 907,
+    defaultCpu: 2,
+    defaultRam: 4096,
+    defaultDisk: 25,
+    minCpu: 2,
+    minRam: 4096,
+    minDisk: 25,
+    linux: true,
+    adminOnly: false,
+    fixedUser: null,
+    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+  },
+  debian13: {
+    label: "Debian 13",
+    vmid: 908,
+    defaultCpu: 2,
+    defaultRam: 2048,
+    defaultDisk: 20,
+    minCpu: 1,
+    minRam: 1024,
+    minDisk: 20,
+    linux: true,
+    adminOnly: false,
+    fixedUser: null,
+    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+  },
+  tiny11: {
+    label: "Tiny Windows 11",
+    vmid: 905,
+    defaultCpu: 2,
+    defaultRam: 4096,
+    defaultDisk: 64,
+    minCpu: 2,
+    minRam: 4096,
+    minDisk: 64,
+    linux: false,
+    adminOnly: true,
+    fixedUser: "admin",
+    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin."
+  },
+  win10v2: {
+    label: "Windows 10",
+    vmid: 906,
+    defaultCpu: 2,
+    defaultRam: 4096,
+    defaultDisk: 64,
+    minCpu: 2,
+    minRam: 4096,
+    minDisk: 64,
+    linux: false,
+    adminOnly: true,
+    fixedUser: "admin1",
+    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin1."
+  }
 };
 
 const uiState = {
-  statusFilter: null,   // "running" | "stopped" | null
-  poolFilter: null,     // "user1" | "user2" | ...
+  statusFilter: null,
+  poolFilter: null,
   openPools: new Set(),
   history: []
 };
 
 const actionState = {
-  pending: new Map(),      // vmid -> { kind, until }
+  pending: new Map(),
   refreshTimer: null,
+  pollTimer: null,
   statusTimer: null
 };
 
@@ -28,12 +87,12 @@ function loadUiPrefs() {
     return {
       autoRefreshInterval: "5000",
       confirmDangerousActions: true,
-      ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}"),
+      ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}")
     };
   } catch {
     return {
       autoRefreshInterval: "5000",
-      confirmDangerousActions: true,
+      confirmDangerousActions: true
     };
   }
 }
@@ -86,12 +145,20 @@ function setStatus(msg, type = "info", autoHideMs = 0) {
 
 async function parseResponse(r) {
   const txt = await r.text();
-  try { return JSON.parse(txt); } catch { return txt; }
+  try {
+    return JSON.parse(txt);
+  } catch {
+    return txt;
+  }
 }
 
 async function apiGet(path) {
   const r = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
-  if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+  if (r.status === 401) {
+    localStorage.clear();
+    window.location.href = "index.html";
+    return;
+  }
   const d = await parseResponse(r);
   if (!r.ok) throw new Error(d?.error || d?.message || String(d));
   return d;
@@ -103,7 +170,11 @@ async function apiPost(path, body) {
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
-  if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+  if (r.status === 401) {
+    localStorage.clear();
+    window.location.href = "index.html";
+    return;
+  }
   const d = await parseResponse(r);
   if (!r.ok) throw new Error(d?.error || d?.message || String(d));
   return d;
@@ -124,7 +195,7 @@ function calcUsageFromVms(vms) {
 
 function shownId(vmid, role) {
   const id = Number(vmid);
-  return (role === "admin") ? id : (id % 100);
+  return role === "admin" ? id : (id % 100);
 }
 
 function pushHistory() {
@@ -173,13 +244,26 @@ function getPending(vmid) {
   const k = Number(vmid);
   const p = actionState.pending.get(k);
   if (!p) return null;
-  if (Date.now() > p.until) { actionState.pending.delete(k); return null; }
+  if (Date.now() > p.until) {
+    actionState.pending.delete(k);
+    return null;
+  }
   return p.kind;
 }
 
 function scheduleRefresh(ms = getAutoRefreshMs()) {
   clearTimeout(actionState.refreshTimer);
   actionState.refreshTimer = setTimeout(() => {
+    refreshVmList().catch(() => {});
+  }, ms);
+}
+
+function startAutoPoll() {
+  clearInterval(actionState.pollTimer);
+  const ms = getAutoRefreshMs();
+  const out = document.getElementById("out");
+  if (!out || ms <= 0) return;
+  actionState.pollTimer = setInterval(() => {
     refreshVmList().catch(() => {});
   }, ms);
 }
@@ -220,6 +304,12 @@ function barClass(usedRatio) {
   return "bg-success";
 }
 
+function currentTemplateMeta() {
+  const tplEl = document.getElementById("template");
+  if (!tplEl) return null;
+  return TEMPLATE_META[tplEl.value] || null;
+}
+
 function renderQuotaBox() {
   const box = document.getElementById("quotaBox");
   if (!box) return;
@@ -239,9 +329,9 @@ function renderQuotaBox() {
   const usedRamGB = Number(fmtGB(quotaCache.ramBytes));
   const usedDiskGB = Number(fmtGB(quotaCache.diskBytes));
 
-  const rVms  = clamp01(usedVms / QUOTA.maxVms);
-  const rCpu  = clamp01(usedCores / QUOTA.maxCores);
-  const rRam  = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
+  const rVms = clamp01(usedVms / QUOTA.maxVms);
+  const rCpu = clamp01(usedCores / QUOTA.maxCores);
+  const rRam = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
   const rDisk = clamp01(quotaCache.diskBytes / QUOTA.maxDiskBytes);
 
   const selCores = Number(document.getElementById("cores")?.value || 0);
@@ -250,14 +340,16 @@ function renderQuotaBox() {
 
   const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
   const selDiskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
-  const selDiskBytes = (selDiskGb && Number.isFinite(selDiskGb)) ? selDiskGb * 1024 * 1024 * 1024 : 0;
+  const selDiskBytes = (selDiskGb && Number.isFinite(selDiskGb))
+    ? selDiskGb * 1024 * 1024 * 1024
+    : 0;
 
   const afterCores = usedCores + (Number.isFinite(selCores) ? selCores : 0);
   const afterRamBytes = quotaCache.ramBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
   const afterDiskBytes = quotaCache.diskBytes + selDiskBytes;
 
-  const rCpuAfter  = clamp01(afterCores / QUOTA.maxCores);
-  const rRamAfter  = clamp01(afterRamBytes / QUOTA.maxRamBytes);
+  const rCpuAfter = clamp01(afterCores / QUOTA.maxCores);
+  const rRamAfter = clamp01(afterRamBytes / QUOTA.maxRamBytes);
   const rDiskAfter = clamp01(afterDiskBytes / QUOTA.maxDiskBytes);
 
   box.innerHTML = `
@@ -294,6 +386,58 @@ async function refreshQuotaFromList() {
   }
 }
 
+function applyTemplatePreset() {
+  const tplEl = document.getElementById("template");
+  if (!tplEl) return;
+
+  const meta = TEMPLATE_META[tplEl.value];
+  if (!meta) return;
+
+  const coresEl = document.getElementById("cores");
+  const memEl = document.getElementById("memory");
+  const diskEl = document.getElementById("diskGb");
+  const userWrap = document.getElementById("vmUserWrap");
+  const userEl = document.getElementById("vmUser");
+  const userHelp = document.getElementById("vmUserHelp");
+  const passHelp = document.getElementById("vmPassHelp");
+  const templateHelp = document.getElementById("templateHelp");
+
+  if (coresEl) {
+    coresEl.value = meta.defaultCpu;
+    coresEl.min = meta.minCpu;
+  }
+  if (memEl) {
+    memEl.value = meta.defaultRam;
+    memEl.min = meta.minRam;
+  }
+  if (diskEl) {
+    diskEl.value = meta.defaultDisk;
+    diskEl.min = meta.minDisk;
+  }
+
+  if (templateHelp) templateHelp.textContent = meta.help || "";
+
+  if (meta.linux) {
+    if (userWrap) userWrap.style.display = "";
+    if (userEl) {
+      userEl.disabled = false;
+      userEl.placeholder = "např. test";
+    }
+    if (userHelp) userHelp.textContent = "Použije se pro Ubuntu/Debian (Cloud-Init).";
+    if (passHelp) passHelp.textContent = "Ubuntu/Debian (Cloud-Init).";
+  } else {
+    if (userWrap) userWrap.style.display = "none";
+    if (userEl) {
+      userEl.disabled = true;
+      userEl.value = "";
+    }
+    if (userHelp) userHelp.textContent = "";
+    if (passHelp) passHelp.textContent = `Windows template. Heslo se nastaví pro účet ${meta.fixedUser}.`;
+  }
+
+  renderQuotaBox();
+}
+
 function makeVmRow(vm, role) {
   const row = document.createElement("div");
   row.className = "vm-row";
@@ -308,9 +452,12 @@ function makeVmRow(vm, role) {
   title.className = "vm-row-title";
 
   const pending = getPending(vm.vmid);
-  const displayStatus = pending === "starting" ? "starting" : pending === "stopping" ? "stopping" : vm.status;
-  dotEl.dataset.state = pending ? "pending" : (vm.status || "");
+  const displayStatus =
+    pending === "starting" ? "starting" :
+    pending === "stopping" ? "stopping" :
+    vm.status;
 
+  dotEl.dataset.state = pending ? "pending" : (vm.status || "");
   title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}`;
   left.appendChild(title);
 
@@ -332,7 +479,7 @@ function makeVmRow(vm, role) {
       title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting`;
 
       setStatus("Spouštím…", "success", 3000);
-      scheduleRefresh(5000);
+      scheduleRefresh();
 
       await apiPost(`/api/vm/${vm.vmid}/start`, {});
     } catch (e) {
@@ -346,12 +493,14 @@ function makeVmRow(vm, role) {
   btnStop.className = "btn btn-sm btn-warning";
   btnStop.onclick = async () => {
     try {
+      if (confirmDangerousActionsEnabled() && !confirm(`Opravdu vypnout VM ${shownId(vm.vmid, role)}?`)) return;
+
       markPending(vm.vmid, "stopping", 6000);
       dotEl.dataset.state = "pending";
       title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
 
       setStatus("Vypínám…", "success", 3000);
-      scheduleRefresh(5000);
+      scheduleRefresh();
 
       await apiPost(`/api/vm/${vm.vmid}/stop`, {});
     } catch (e) {
@@ -366,15 +515,14 @@ function makeVmRow(vm, role) {
   btnDelete.onclick = async () => {
     try {
       if (vm.status === "running") {
-        const ok = confirm("VM běží. Nejdřív ji vypnout a pak smazat?");
-        if (!ok) return;
+        if (confirmDangerousActionsEnabled() && !confirm("VM běží. Nejdřív ji vypnout a pak smazat?")) return;
 
         markPending(vm.vmid, "stopping", 6000);
         dotEl.dataset.state = "pending";
         title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
 
         setStatus("Vypínám…", "success", 3000);
-        scheduleRefresh(5000);
+        scheduleRefresh();
 
         await apiPost(`/api/vm/${vm.vmid}/stop`, {});
         await new Promise(r => setTimeout(r, 800));
@@ -385,10 +533,17 @@ function makeVmRow(vm, role) {
       markPending(vm.vmid, "deleting", 15000);
       row.remove();
       setStatus("Mažu…", "success", 3000);
-      scheduleRefresh(5000);
+      scheduleRefresh();
 
-      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, { method: "DELETE", headers: authHeaders() });
-      if (r.status === 401) { localStorage.clear(); window.location.href = "index.html"; return; }
+      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (r.status === 401) {
+        localStorage.clear();
+        window.location.href = "index.html";
+        return;
+      }
       const d = await parseResponse(r);
       if (!r.ok) throw new Error(d?.error || String(d));
 
@@ -424,20 +579,20 @@ function initDashboardFilters() {
   setCardClickable("statRunning", () => {
     pushHistory();
     uiState.statusFilter = (uiState.statusFilter === "running") ? null : "running";
-    refreshVmList();
+    refreshVmList().catch(() => {});
   });
 
   setCardClickable("statStopped", () => {
     pushHistory();
     uiState.statusFilter = (uiState.statusFilter === "stopped") ? null : "stopped";
-    refreshVmList();
+    refreshVmList().catch(() => {});
   });
 
   setCardClickable("statTotal", () => {
     pushHistory();
     uiState.statusFilter = null;
     uiState.poolFilter = null;
-    refreshVmList();
+    refreshVmList().catch(() => {});
   });
 }
 
@@ -449,8 +604,6 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-
-  // schovej VM v procesu mazání, ať se nevrátí po refreshi
   const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
 
   updateStats(vmsAllFiltered);
@@ -491,14 +644,12 @@ async function refreshVmList() {
     const pools = [...map.keys()].filter(p => p !== adminPool).sort();
     for (const p of pools) {
       const group = map.get(p) || [];
-
       const details = document.createElement("details");
       details.className = "vm-bubble";
       details.dataset.pool = p;
 
       const summary = document.createElement("summary");
       summary.textContent = `${p} (${group.length})`;
-
       summary.addEventListener("click", () => {
         pushHistory();
         uiState.poolFilter = (uiState.poolFilter === p) ? null : p;
@@ -522,21 +673,42 @@ async function refreshVmList() {
   for (const vm of vms) out.appendChild(makeVmRow(vm, role));
 }
 
+async function testBackend() {
+  try {
+    setStatus("Testuji backend…", "info", 3000);
+    const res = await apiGet("/api/test");
+    setStatus(res?.ok ? "Backend odpověděl správně." : "Backend vrátil neočekávanou odpověď.", res?.ok ? "success" : "error", 4000);
+  } catch (e) {
+    setStatus(String(e.message || e), "error", 6000);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body?.dataset?.page || "";
   const isCreate = page === "create";
 
-  const t = document.getElementById("togglePass");
-const p = document.getElementById("vmPass");
-if (t && p) {
-  t.addEventListener("click", () => {
-    const show = p.type === "password";
-    p.type = show ? "text" : "password";
-    t.textContent = show ? "Skrýt" : "Zobrazit";
-  });
-}
-
   initDashboardFilters();
+
+  const autoRefreshEl = document.getElementById("autoRefreshInterval");
+  const confirmDangerousEl = document.getElementById("confirmDangerousActions");
+
+  if (autoRefreshEl || confirmDangerousEl) {
+    const prefs = loadUiPrefs();
+
+    if (autoRefreshEl) {
+      autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
+      autoRefreshEl.addEventListener("change", () => {
+        saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
+      });
+    }
+
+    if (confirmDangerousEl) {
+      confirmDangerousEl.checked = !!prefs.confirmDangerousActions;
+      confirmDangerousEl.addEventListener("change", () => {
+        saveUiPrefs({ confirmDangerousActions: confirmDangerousEl.checked });
+      });
+    }
+  }
 
   const backBtn = document.getElementById("filterBack");
   if (backBtn) {
@@ -550,17 +722,45 @@ if (t && p) {
     });
   }
 
-  if (!isCreate) {
+  const out = document.getElementById("out");
+  if (!isCreate && out) {
     const btnRefresh = document.getElementById("refreshBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", () => refreshVmList().catch(() => {}));
     refreshVmList().catch(e => setStatus(String(e.message || e), "error", 6000));
+    startAutoPoll();
+  }
+
+  const t = document.getElementById("togglePass");
+  const p = document.getElementById("vmPass");
+  if (t && p) {
+    t.addEventListener("click", () => {
+      const show = p.type === "password";
+      p.type = show ? "text" : "password";
+      t.textContent = show ? "Skrýt" : "Zobrazit";
+    });
+  }
+
+  const btnTest = document.getElementById("btnTest");
+  if (btnTest) {
+    btnTest.addEventListener("click", testBackend);
   }
 
   if (isCreate) {
+    const tplEl = document.getElementById("template");
+    if (tplEl) {
+      if (getRole() !== "admin") {
+        [...tplEl.querySelectorAll("option[data-admin-only='1']")].forEach(o => o.remove());
+      }
+      tplEl.addEventListener("change", applyTemplatePreset);
+      applyTemplatePreset();
+    }
+
     refreshQuotaFromList();
+
     const coresEl = document.getElementById("cores");
     const memEl = document.getElementById("memory");
     const diskEl = document.getElementById("diskGb");
+
     if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
     if (memEl) memEl.addEventListener("input", renderQuotaBox);
     if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
@@ -574,7 +774,9 @@ if (t && p) {
         setStatus("Vytvářím…", "success");
 
         const name = (document.getElementById("name")?.value || "").trim();
-        const template = (document.getElementById("template")?.value || "ubuntu").trim();
+        const template = (document.getElementById("template")?.value || "ubuntu2404").trim();
+        const meta = TEMPLATE_META[template];
+
         const cores = Number(document.getElementById("cores")?.value || 2);
         const memory = Number(document.getElementById("memory")?.value || 2048);
 
@@ -587,50 +789,95 @@ if (t && p) {
         const vmUser = (document.getElementById("vmUser")?.value || "").trim();
         const vmPass = (document.getElementById("vmPass")?.value || "").trim();
 
-        if (!vmUser) { setStatus("Chybí uživatel.", "error", 6000); return; }
-        if (!vmPass) { setStatus("Chybí heslo.", "error", 6000); return; }
-        if (vmPass.length < 4) { setStatus("Heslo musí mít alespoň 4 znaky.", "error", 6000); return; }
-        
-        if (!name) { setStatus("Chybí název VM.", "error", 6000); return; }
-        if (!Number.isInteger(cores) || cores < 1 || cores > 8) { setStatus("CPU musí být celé 1–8.", "error", 6000); return; }
-        if (!Number.isInteger(memory) || memory < 256 || memory > 20480) { setStatus("RAM musí být 256–20480 MB.", "error", 6000); return; }
-        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) { setStatus("VMID slot musí být 0–99.", "error", 6000); return; }
-        if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < 5 || diskGb > 250)) { setStatus("Disk musí být 5–250 GB.", "error", 6000); return; }
+        if (!meta) {
+          setStatus("Neplatná šablona.", "error", 6000);
+          return;
+        }
 
-        localStorage.setItem("pendingCreate", JSON.stringify({ ts: Date.now(), name }));
+        if (!name) {
+          setStatus("Chybí název VM.", "error", 6000);
+          return;
+        }
 
-        await apiPost("/api/vm/create", { name, template, cores, memory, slot, diskGb, vmUser, vmPass });
-        localStorage.removeItem("pendingCreate");
+        if (!Number.isInteger(cores) || cores < meta.minCpu || cores > QUOTA.maxCores) {
+          setStatus(`CPU musí být celé ${meta.minCpu}–${QUOTA.maxCores}.`, "error", 6000);
+          return;
+        }
+
+        if (!Number.isInteger(memory) || memory < meta.minRam || memory > 20480) {
+          setStatus(`RAM musí být ${meta.minRam}–20480 MB.`, "error", 6000);
+          return;
+        }
+
+        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) {
+          setStatus("VMID slot musí být 0–99.", "error", 6000);
+          return;
+        }
+
+        if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < meta.minDisk || diskGb > 250)) {
+          setStatus(`Disk musí být ${meta.minDisk}–250 GB.`, "error", 6000);
+          return;
+        }
+
+        if (!vmPass) {
+          setStatus("Chybí heslo.", "error", 6000);
+          return;
+        }
+
+        if (vmPass.length < 4) {
+          setStatus("Heslo je příliš krátké.", "error", 6000);
+          return;
+        }
+
+        if (meta.linux && !vmUser) {
+          setStatus("Chybí uživatel.", "error", 6000);
+          return;
+        }
+
+        if (getRole() !== "admin" && quotaCache) {
+          const projVms = quotaCache.vms + 1;
+          const projCores = quotaCache.cores + cores;
+          const projRamBytes = quotaCache.ramBytes + (memory * 1024 * 1024);
+          const projDiskBytes = quotaCache.diskBytes + ((diskGb || meta.defaultDisk) * 1024 * 1024 * 1024);
+
+          if (projVms > QUOTA.maxVms) {
+            setStatus("Limit: počet VM překročen.", "error", 6000);
+            return;
+          }
+          if (projCores > QUOTA.maxCores) {
+            setStatus("Limit: CPU překročen.", "error", 6000);
+            return;
+          }
+          if (projRamBytes > QUOTA.maxRamBytes) {
+            setStatus("Limit: RAM překročen.", "error", 6000);
+            return;
+          }
+          if (projDiskBytes > QUOTA.maxDiskBytes) {
+            setStatus("Limit: Disk překročen.", "error", 6000);
+            return;
+          }
+        }
+
+        await apiPost("/api/vm/create", {
+          name,
+          template,
+          cores,
+          memory,
+          slot,
+          diskGb,
+          vmUser,
+          vmPass
+        });
+
         setStatus("Hotovo. Přesměrovávám na Moje VM…", "success", 3000);
-        setTimeout(() => { window.location.href = "myvm.html"; }, 600);
+        setTimeout(() => {
+          window.location.href = "myvm.html";
+        }, 600);
       } catch (e) {
-        localStorage.removeItem("pendingCreate");
         setStatus(String(e.message || e), "error", 6000);
       } finally {
         btnCreate.disabled = false;
       }
     });
   }
-
-  const autoRefreshEl = document.getElementById("autoRefreshInterval");
-const confirmDangerousEl = document.getElementById("confirmDangerousActions");
-
-if (autoRefreshEl || confirmDangerousEl) {
-  const prefs = loadUiPrefs();
-
-  if (autoRefreshEl) {
-    autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
-    autoRefreshEl.addEventListener("change", () => {
-      saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
-    });
-  }
-
-  if (confirmDangerousEl) {
-    confirmDangerousEl.checked = !!prefs.confirmDangerousActions;
-    confirmDangerousEl.addEventListener("change", () => {
-      saveUiPrefs({ confirmDangerousActions: confirmDangerousEl.checked });
-    });
-  }
-}
-
 });
