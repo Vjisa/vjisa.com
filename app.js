@@ -8,9 +8,21 @@ const QUOTA = {
 };
 
 const TEMPLATE_META = {
+  ubuntu: {
+    label: "Ubuntu Server",
+    defaultCpu: 2,
+    defaultRam: 2048,
+    defaultDisk: 20,
+    minCpu: 1,
+    minRam: 1024,
+    minDisk: 20,
+    linux: true,
+    adminOnly: false,
+    fixedUser: null,
+    help: "Původní Ubuntu Server template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+  },
   ubuntu2404: {
     label: "Ubuntu 24.04",
-    vmid: 907,
     defaultCpu: 2,
     defaultRam: 4096,
     defaultDisk: 25,
@@ -24,7 +36,6 @@ const TEMPLATE_META = {
   },
   debian13: {
     label: "Debian 13",
-    vmid: 908,
     defaultCpu: 2,
     defaultRam: 2048,
     defaultDisk: 20,
@@ -38,7 +49,6 @@ const TEMPLATE_META = {
   },
   tiny11: {
     label: "Tiny Windows 11",
-    vmid: 905,
     defaultCpu: 2,
     defaultRam: 4096,
     defaultDisk: 64,
@@ -52,7 +62,6 @@ const TEMPLATE_META = {
   },
   win10v2: {
     label: "Windows 10",
-    vmid: 906,
     defaultCpu: 2,
     defaultRam: 4096,
     defaultDisk: 64,
@@ -774,7 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("Vytvářím…", "success");
 
         const name = (document.getElementById("name")?.value || "").trim();
-        const template = (document.getElementById("template")?.value || "ubuntu2404").trim();
+        const template = (document.getElementById("template")?.value || "ubuntu").trim();
         const meta = TEMPLATE_META[template];
 
         const cores = Number(document.getElementById("cores")?.value || 2);
