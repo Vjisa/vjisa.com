@@ -891,9 +891,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (isCreate) {
     const tplEl = document.getElementById("template");
     if (tplEl) {
-      if (getRole() !== "admin") {
-        [...tplEl.querySelectorAll("option[data-admin-only='1']")].forEach((o) => o.remove());
-      }
       tplEl.addEventListener("change", applyTemplatePreset);
       applyTemplatePreset();
     }
