@@ -862,3 +862,119 @@ body.theme-dark {
   transition: background-color 9999s ease-in-out 0s;
   caret-color: rgba(226, 232, 240, 0.95) !important;
 }
+
+/* --- pending / creating state --- */
+.vm-dot[data-state="pending"] { background: #f59e0b; }
+
+/* --- dark mode inputs incl. autofill --- */
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark .input-group .btn-outline-secondary {
+  background: rgba(2, 6, 23, 0.72) !important;
+  color: rgba(226, 232, 240, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+.theme-dark .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.85) !important;
+}
+
+.theme-dark .input-group .btn-outline-secondary:hover {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: rgba(226, 232, 240, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+}
+
+.theme-dark input:-webkit-autofill,
+.theme-dark input:-webkit-autofill:hover,
+.theme-dark input:-webkit-autofill:focus,
+.theme-dark textarea:-webkit-autofill,
+.theme-dark select:-webkit-autofill {
+  -webkit-text-fill-color: rgba(226, 232, 240, 0.95) !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.72) inset !important;
+  box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.72) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: rgba(226, 232, 240, 0.95) !important;
+}
+
+/* --- audit dark table --- */
+.theme-dark table {
+  color: rgba(226, 232, 240, 0.92);
+}
+.theme-dark table thead th {
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(226, 232, 240, 0.95);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.theme-dark table tbody td {
+  background: rgba(2, 6, 23, 0.55);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+.theme-dark table tbody tr:hover td {
+  background: rgba(30, 41, 59, 0.55);
+}
+.theme-dark .table {
+  --bs-table-bg: rgba(2, 6, 23, 0.55);
+  --bs-table-striped-bg: rgba(15, 23, 42, 0.45);
+  --bs-table-hover-bg: rgba(30, 41, 59, 0.55);
+  --bs-table-color: rgba(226, 232, 240, 0.92);
+  --bs-table-border-color: rgba(148, 163, 184, 0.18);
+}
+
+/* --- mobile sidebar fix --- */
+@media (max-width: 991.98px) {
+  .app-shell {
+    display: block !important;
+  }
+
+  .sidebar {
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    margin-bottom: 1rem;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .sidebar-link {
+    flex: 1 1 calc(50% - .5rem);
+    min-width: 140px;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem;
+  }
+
+  .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .vm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .vm-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: .75rem;
+  }
+}
