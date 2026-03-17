@@ -67,14 +67,14 @@
 
               <div class="mb-3">
                 <label class="form-label" for="template">Šablona (OS)</label>
-<select class="form-select" id="template">
-  <option value="ubuntu">Ubuntu Server</option>
-  <option value="ubuntu2404">Ubuntu 24.04</option>
-  <option value="debian13">Debian 13</option>
-  <option value="tiny11" data-admin-only="1">Tiny Windows 11</option>
-  <option value="win10v2" data-admin-only="1">Windows 10</option>
-</select>
-<div class="text-muted small mt-1" id="templateHelp"></div>
+                <select class="form-select" id="template">
+                  <option value="ubuntu">Ubuntu Server</option>
+                  <option value="ubuntu2404">Ubuntu 24.04</option>
+                  <option value="debian13">Debian 13</option>
+                  <option value="tiny11" data-admin-only="1">Tiny Windows 11</option>
+                  <option value="win10v2" data-admin-only="1">Windows 10</option>
+                </select>
+                <div class="text-muted small mt-1" id="templateHelp"></div>
               </div>
 
               <div class="row g-3">
@@ -111,13 +111,13 @@
                     Disk (GB)
                     <span class="vm-info" data-tip="Skutečné maximum určuje zůstatek prostředků uživatele.">i</span>
                   </label>
-                  <input class="form-control" id="diskGb" type="number" min="5" max="250" step="5" inputmode="numeric" value="20" />
+                  <input class="form-control" id="diskGb" type="number" min="5" max="250" step="1" inputmode="numeric" value="20" />
                 </div>
 
                 <div class="col-12 col-md-6">
-                  <label class="form-label" for="slot">ID (0–99)</label>
+                  <label class="form-label" for="slot" id="slotLabel">ID (0–99)</label>
                   <input class="form-control" id="slot" type="number" min="0" max="99" step="1" inputmode="numeric" placeholder="nepovinné" />
-                  <div class="text-muted small mt-1">User uvidí slot, admin plné VMID.</div>
+                  <div class="text-muted small mt-1" id="slotHelp">User vybírá jen 0–99. Admin může použít celé VMID.</div>
                 </div>
 
                 <div class="col-12 col-md-6" id="vmUserWrap">
@@ -151,7 +151,7 @@
             <div class="card-body p-4">
               <h2 class="h5 mb-2">Využití limitů</h2>
               <div class="text-muted small mb-3">
-                Limity platí součtem přes všechny tvoje VM.
+                Limity platí součtem přes všechny tvoje VM. Včetně těch, které se právě vytvářejí v tomto prohlížeči.
               </div>
               <div id="quotaBox">
                 <div class="small text-muted">Načítám…</div>
