@@ -19,7 +19,7 @@ const TEMPLATE_META = {
     linux: true,
     adminOnly: false,
     fixedUser: null,
-    help: "Původní Ubuntu Server template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+    help: "Původní Ubuntu Server template. Uživatelské jméno i heslo se nastaví přes Cloud-Init.",
   },
   ubuntu2404: {
     label: "Ubuntu 24.04",
@@ -32,7 +32,7 @@ const TEMPLATE_META = {
     linux: true,
     adminOnly: false,
     fixedUser: null,
-    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init.",
   },
   debian13: {
     label: "Debian 13",
@@ -45,7 +45,7 @@ const TEMPLATE_META = {
     linux: true,
     adminOnly: false,
     fixedUser: null,
-    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init."
+    help: "Linux template. Uživatelské jméno i heslo se nastaví přes Cloud-Init.",
   },
   tiny11: {
     label: "Tiny Windows 11",
@@ -58,7 +58,7 @@ const TEMPLATE_META = {
     linux: false,
     adminOnly: true,
     fixedUser: "admin",
-    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin."
+    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin.",
   },
   win10v2: {
     label: "Windows 10",
@@ -71,37 +71,38 @@ const TEMPLATE_META = {
     linux: false,
     adminOnly: true,
     fixedUser: "admin1",
-    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin1."
-  }
+    help: "Windows template jen pro admina. Heslo se nastaví pro účet admin1.",
+  },
 };
 
 const uiState = {
   statusFilter: null,
   poolFilter: null,
   openPools: new Set(),
-  history: []
+  history: [],
 };
 
 const actionState = {
   pending: new Map(),
   refreshTimer: null,
   pollTimer: null,
-  statusTimer: null
+  statusTimer: null,
 };
 
 const UI_PREFS_KEY = "mojevm.uiPrefs";
+const PENDING_CREATE_KEY = "mojevm.pendingCreates";
 
 function loadUiPrefs() {
   try {
     return {
       autoRefreshInterval: "5000",
       confirmDangerousActions: true,
-      ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}")
+      ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}"),
     };
   } catch {
     return {
       autoRefreshInterval: "5000",
-      confirmDangerousActions: true
+      confirmDangerousActions: true,
     };
   }
 }
@@ -123,6 +124,10 @@ function confirmDangerousActionsEnabled() {
 
 function getRole() {
   return localStorage.getItem("role") || "user";
+}
+
+function getPool() {
+  return localStorage.getItem("pool") || "";
 }
 
 function authHeaders(extra = {}) {
@@ -204,6 +209,7 @@ function calcUsageFromVms(vms) {
 
 function shownId(vmid, role) {
   const id = Number(vmid);
+  if (!Number.isFinite(id)) return String(vmid ?? "?");
   return role === "admin" ? id : (id % 100);
 }
 
@@ -227,7 +233,7 @@ function popHistory() {
 
 function captureOpenBubbles() {
   uiState.openPools = new Set(
-    [...document.querySelectorAll("details.vm-bubble[open]")].map(d => d.dataset.pool)
+    [...document.querySelectorAll("details.vm-bubble[open]")].map((d) => d.dataset.pool)
   );
 }
 
@@ -239,9 +245,9 @@ function restoreOpenBubbles() {
 
 function applyFilters(vms) {
   let out = vms;
-  if (uiState.poolFilter) out = out.filter(v => (v.pool || "") === uiState.poolFilter);
-  if (uiState.statusFilter === "running") out = out.filter(v => v.status === "running");
-  if (uiState.statusFilter === "stopped") out = out.filter(v => v.status !== "running");
+  if (uiState.poolFilter) out = out.filter((v) => (v.pool || "") === uiState.poolFilter);
+  if (uiState.statusFilter === "running") out = out.filter((v) => v.status === "running");
+  if (uiState.statusFilter === "stopped") out = out.filter((v) => v.status !== "running");
   return out;
 }
 
@@ -279,7 +285,7 @@ function startAutoPoll() {
 
 function updateStats(vms) {
   const total = vms.length;
-  const running = vms.filter(v => v.status === "running").length;
+  const running = vms.filter((v) => v.status === "running").length;
   const stopped = total - running;
 
   const a = document.getElementById("statTotal");
@@ -313,10 +319,55 @@ function barClass(usedRatio) {
   return "bg-success";
 }
 
-function currentTemplateMeta() {
-  const tplEl = document.getElementById("template");
-  if (!tplEl) return null;
-  return TEMPLATE_META[tplEl.value] || null;
+function loadPendingCreates() {
+  try {
+    const now = Date.now();
+    const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+    const filtered = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
+    if (filtered.length !== arr.length) {
+      localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
+  } catch {
+    return [];
+  }
+}
+
+function savePendingCreates(arr) {
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
+}
+
+function addPendingCreate(entry) {
+  const arr = loadPendingCreates();
+  arr.push(entry);
+  savePendingCreates(arr);
+}
+
+function removePendingCreateByKey(requestKey) {
+  const arr = loadPendingCreates().filter((x) => x.requestKey !== requestKey);
+  savePendingCreates(arr);
+}
+
+function removePendingCreateByName(name) {
+  const arr = loadPendingCreates().filter((x) => x.name !== name);
+  savePendingCreates(arr);
+}
+
+function pendingUsage() {
+  const arr = loadPendingCreates();
+  return {
+    vms: arr.length,
+    cores: arr.reduce((s, x) => s + (Number(x.cores) || 0), 0),
+    ramBytes: arr.reduce((s, x) => s + (Number(x.memory) || 0) * 1024 * 1024, 0),
+    diskBytes: arr.reduce((s, x) => s + (Number(x.diskGb) || 0) * 1024 * 1024 * 1024, 0),
+  };
+}
+
+function pendingVmidConflict(requestedVmid, requestKey = null) {
+  if (!requestedVmid) return false;
+  return loadPendingCreates().some(
+    (x) => x.requestKey !== requestKey && Number(x.requestedVmid) === Number(requestedVmid)
+  );
 }
 
 function renderQuotaBox() {
@@ -333,15 +384,19 @@ function renderQuotaBox() {
     return;
   }
 
-  const usedVms = quotaCache.vms;
-  const usedCores = quotaCache.cores;
-  const usedRamGB = Number(fmtGB(quotaCache.ramBytes));
-  const usedDiskGB = Number(fmtGB(quotaCache.diskBytes));
+  const pending = pendingUsage();
+  const usedVms = quotaCache.vms + pending.vms;
+  const usedCores = quotaCache.cores + pending.cores;
+  const usedRamBytes = quotaCache.ramBytes + pending.ramBytes;
+  const usedDiskBytes = quotaCache.diskBytes + pending.diskBytes;
+
+  const usedRamGB = Number(fmtGB(usedRamBytes));
+  const usedDiskGB = Number(fmtGB(usedDiskBytes));
 
   const rVms = clamp01(usedVms / QUOTA.maxVms);
   const rCpu = clamp01(usedCores / QUOTA.maxCores);
-  const rRam = clamp01(quotaCache.ramBytes / QUOTA.maxRamBytes);
-  const rDisk = clamp01(quotaCache.diskBytes / QUOTA.maxDiskBytes);
+  const rRam = clamp01(usedRamBytes / QUOTA.maxRamBytes);
+  const rDisk = clamp01(usedDiskBytes / QUOTA.maxDiskBytes);
 
   const selCores = Number(document.getElementById("cores")?.value || 0);
   const selMemMiB = Number(document.getElementById("memory")?.value || 0);
@@ -354,8 +409,8 @@ function renderQuotaBox() {
     : 0;
 
   const afterCores = usedCores + (Number.isFinite(selCores) ? selCores : 0);
-  const afterRamBytes = quotaCache.ramBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
-  const afterDiskBytes = quotaCache.diskBytes + selDiskBytes;
+  const afterRamBytes = usedRamBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
+  const afterDiskBytes = usedDiskBytes + selDiskBytes;
 
   const rCpuAfter = clamp01(afterCores / QUOTA.maxCores);
   const rRamAfter = clamp01(afterRamBytes / QUOTA.maxRamBytes);
@@ -363,22 +418,22 @@ function renderQuotaBox() {
 
   box.innerHTML = `
     <div class="small fw-semibold d-flex justify-content-between"><span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu * 100).toFixed(0)}%"></div></div>
     <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${afterCores}/${QUOTA.maxCores}</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter * 100).toFixed(0)}%"></div></div>
 
     <div class="small fw-semibold d-flex justify-content-between"><span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rRam)}" style="width:${(rRam*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rRam)}" style="width:${(rRam * 100).toFixed(0)}%"></div></div>
     <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter * 100).toFixed(0)}%"></div></div>
 
     <div class="small fw-semibold d-flex justify-content-between"><span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk * 100).toFixed(0)}%"></div></div>
     <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter*100).toFixed(0)}%"></div></div>
+    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter * 100).toFixed(0)}%"></div></div>
 
     <div class="small fw-semibold d-flex justify-content-between"><span>Počet VM</span><span>${usedVms}/${QUOTA.maxVms}</span></div>
-    <div class="progress" style="height:10px;"><div class="progress-bar ${barClass(rVms)}" style="width:${(rVms*100).toFixed(0)}%"></div></div>
+    <div class="progress" style="height:10px;"><div class="progress-bar ${barClass(rVms)}" style="width:${(rVms * 100).toFixed(0)}%"></div></div>
   `;
 }
 
@@ -389,6 +444,7 @@ async function refreshQuotaFromList() {
     const data = await apiGet("/api/vm/list");
     const vms = data?.vms || [];
     quotaCache = calcUsageFromVms(vms);
+    for (const vm of vms) removePendingCreateByName(vm.name);
     renderQuotaBox();
   } catch {
     box.textContent = "Limity nelze načíst";
@@ -402,9 +458,13 @@ function applyTemplatePreset() {
   const meta = TEMPLATE_META[tplEl.value];
   if (!meta) return;
 
+  const role = getRole();
   const coresEl = document.getElementById("cores");
   const memEl = document.getElementById("memory");
   const diskEl = document.getElementById("diskGb");
+  const slotEl = document.getElementById("slot");
+  const slotLabel = document.getElementById("slotLabel");
+  const slotHelp = document.getElementById("slotHelp");
   const userWrap = document.getElementById("vmUserWrap");
   const userEl = document.getElementById("vmUser");
   const userHelp = document.getElementById("vmUserHelp");
@@ -422,6 +482,24 @@ function applyTemplatePreset() {
   if (diskEl) {
     diskEl.value = meta.defaultDisk;
     diskEl.min = meta.minDisk;
+  }
+
+  if (slotEl) {
+    if (role === "admin") {
+      slotEl.min = "100";
+      slotEl.max = "999999";
+      slotEl.placeholder = "celé VMID";
+      slotEl.step = "1";
+      if (slotLabel) slotLabel.textContent = "VMID";
+      if (slotHelp) slotHelp.textContent = "Admin může zadat celé VMID. Bez backend úpravy to server ještě nemusí přijmout.";
+    } else {
+      slotEl.min = "0";
+      slotEl.max = "99";
+      slotEl.placeholder = "0–99";
+      slotEl.step = "1";
+      if (slotLabel) slotLabel.textContent = "ID (0–99)";
+      if (slotHelp) slotHelp.textContent = "User vybírá jen 0–99. Skutečné VMID dopočítá backend.";
+    }
   }
 
   if (templateHelp) templateHelp.textContent = meta.help || "";
@@ -447,6 +525,11 @@ function applyTemplatePreset() {
   renderQuotaBox();
 }
 
+function vmIpText(vm) {
+  const ip = vm.ip || vm.ipAddress || vm.primaryIp || null;
+  return ip ? ` | ${ip}` : "";
+}
+
 function makeVmRow(vm, role) {
   const row = document.createElement("div");
   row.className = "vm-row";
@@ -461,17 +544,27 @@ function makeVmRow(vm, role) {
   title.className = "vm-row-title";
 
   const pending = getPending(vm.vmid);
-  const displayStatus =
-    pending === "starting" ? "starting" :
-    pending === "stopping" ? "stopping" :
-    vm.status;
+  let displayStatus = vm.status;
+  if (vm.pendingCreate) displayStatus = "vytváří se";
+  else if (pending === "starting") displayStatus = "starting";
+  else if (pending === "stopping") displayStatus = "stopping";
 
-  dotEl.dataset.state = pending ? "pending" : (vm.status || "");
-  title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}`;
+  dotEl.dataset.state = vm.pendingCreate ? "pending" : (pending ? "pending" : (vm.status || ""));
+  title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}${vmIpText(vm)}`;
   left.appendChild(title);
 
   const actions = document.createElement("div");
   actions.className = "vm-actions";
+
+  if (vm.pendingCreate) {
+    const badge = document.createElement("span");
+    badge.className = "btn btn-sm btn-secondary disabled";
+    badge.textContent = "Vytváří se";
+    actions.appendChild(badge);
+    row.appendChild(left);
+    row.appendChild(actions);
+    return row;
+  }
 
   const btnConsole = document.createElement("button");
   btnConsole.textContent = "Konzole";
@@ -485,7 +578,7 @@ function makeVmRow(vm, role) {
     try {
       markPending(vm.vmid, "starting", 6000);
       dotEl.dataset.state = "pending";
-      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting`;
+      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting${vmIpText(vm)}`;
 
       setStatus("Spouštím…", "success", 3000);
       scheduleRefresh();
@@ -506,7 +599,7 @@ function makeVmRow(vm, role) {
 
       markPending(vm.vmid, "stopping", 6000);
       dotEl.dataset.state = "pending";
-      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
+      title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping${vmIpText(vm)}`;
 
       setStatus("Vypínám…", "success", 3000);
       scheduleRefresh();
@@ -528,13 +621,13 @@ function makeVmRow(vm, role) {
 
         markPending(vm.vmid, "stopping", 6000);
         dotEl.dataset.state = "pending";
-        title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping`;
+        title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping${vmIpText(vm)}`;
 
         setStatus("Vypínám…", "success", 3000);
         scheduleRefresh();
 
         await apiPost(`/api/vm/${vm.vmid}/stop`, {});
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 800));
       }
 
       if (confirmDangerousActionsEnabled() && !confirm(`Opravdu smazat VM ${shownId(vm.vmid, role)}?`)) return;
@@ -546,7 +639,7 @@ function makeVmRow(vm, role) {
 
       const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, {
         method: "DELETE",
-        headers: authHeaders()
+        headers: authHeaders(),
       });
       if (r.status === 401) {
         localStorage.clear();
@@ -605,6 +698,32 @@ function initDashboardFilters() {
   });
 }
 
+function materializePendingCreates(vms) {
+  const pending = loadPendingCreates();
+  const names = new Set(vms.map((v) => v.name));
+  for (const p of pending) {
+    if (names.has(p.name)) {
+      removePendingCreateByKey(p.requestKey);
+    }
+  }
+  return loadPendingCreates();
+}
+
+function fakeVmFromPending(p) {
+  return {
+    vmid: p.requestedVmid ?? `pending-${p.requestKey}`,
+    name: p.name,
+    status: "creating",
+    pendingCreate: true,
+    maxcpu: Number(p.cores) || 0,
+    maxmem: (Number(p.memory) || 0) * 1024 * 1024,
+    maxdisk: (Number(p.diskGb) || 0) * 1024 * 1024 * 1024,
+    consoleUrl: null,
+    pool: p.pool || getPool(),
+    ip: null,
+  };
+}
+
 async function refreshVmList() {
   const out = document.getElementById("out");
   if (!out) return;
@@ -613,16 +732,22 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-  const vmsAllFiltered = vmsAll.filter(v => getPending(v.vmid) !== "deleting");
+  const pendingCreates = materializePendingCreates(vmsAll);
+  quotaCache = calcUsageFromVms(vmsAll);
 
-  updateStats(vmsAllFiltered);
+  const merged = [
+    ...vmsAll.filter((v) => getPending(v.vmid) !== "deleting"),
+    ...pendingCreates.map(fakeVmFromPending),
+  ];
+
+  updateStats(merged);
 
   const role = getRole();
   const page = document.body?.dataset?.page || "";
   if (page === "create") return;
 
   const isDashboard = page === "dashboard";
-  const vms = applyFilters(vmsAllFiltered);
+  const vms = applyFilters(merged);
 
   out.innerHTML = "";
   if (!vms.length) {
@@ -630,7 +755,7 @@ async function refreshVmList() {
     return;
   }
 
-  const hasPool = vmsAllFiltered.some(v => v.pool !== undefined && v.pool !== null);
+  const hasPool = merged.some((v) => v.pool !== undefined && v.pool !== null);
 
   if (role === "admin" && isDashboard && hasPool) {
     const map = new Map();
@@ -650,20 +775,24 @@ async function refreshVmList() {
       for (const vm of adminVms) out.appendChild(makeVmRow(vm, role));
     }
 
-    const pools = [...map.keys()].filter(p => p !== adminPool).sort();
+    const pools = [...map.keys()].filter((p) => p !== adminPool).sort();
     for (const p of pools) {
       const group = map.get(p) || [];
+
       const details = document.createElement("details");
       details.className = "vm-bubble";
       details.dataset.pool = p;
 
       const summary = document.createElement("summary");
       summary.textContent = `${p} (${group.length})`;
+
       summary.addEventListener("click", () => {
         pushHistory();
         uiState.poolFilter = (uiState.poolFilter === p) ? null : p;
         uiState.openPools.add(p);
-        setTimeout(() => { refreshVmList().catch(() => {}); }, 0);
+        setTimeout(() => {
+          refreshVmList().catch(() => {});
+        }, 0);
       });
 
       const content = document.createElement("div");
@@ -708,6 +837,7 @@ document.addEventListener("DOMContentLoaded", () => {
       autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
       autoRefreshEl.addEventListener("change", () => {
         saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
+        startAutoPoll();
       });
     }
 
@@ -735,7 +865,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!isCreate && out) {
     const btnRefresh = document.getElementById("refreshBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", () => refreshVmList().catch(() => {}));
-    refreshVmList().catch(e => setStatus(String(e.message || e), "error", 6000));
+    refreshVmList().catch((e) => setStatus(String(e.message || e), "error", 6000));
     startAutoPoll();
   }
 
@@ -750,15 +880,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const btnTest = document.getElementById("btnTest");
-  if (btnTest) {
-    btnTest.addEventListener("click", testBackend);
-  }
+  if (btnTest) btnTest.addEventListener("click", testBackend);
 
   if (isCreate) {
     const tplEl = document.getElementById("template");
     if (tplEl) {
       if (getRole() !== "admin") {
-        [...tplEl.querySelectorAll("option[data-admin-only='1']")].forEach(o => o.remove());
+        [...tplEl.querySelectorAll("option[data-admin-only='1']")].forEach((o) => o.remove());
       }
       tplEl.addEventListener("change", applyTemplatePreset);
       applyTemplatePreset();
@@ -769,7 +897,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const coresEl = document.getElementById("cores");
     const memEl = document.getElementById("memory");
     const diskEl = document.getElementById("diskGb");
-
     if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
     if (memEl) memEl.addEventListener("input", renderQuotaBox);
     if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
@@ -778,6 +905,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCreate = document.getElementById("btnCreate");
   if (btnCreate) {
     btnCreate.addEventListener("click", async () => {
+      let requestKey = null;
+
       try {
         btnCreate.disabled = true;
         setStatus("Vytvářím…", "success");
@@ -797,6 +926,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const vmUser = (document.getElementById("vmUser")?.value || "").trim();
         const vmPass = (document.getElementById("vmPass")?.value || "").trim();
+
+        const role = getRole();
+        const requestedVmid = role === "admin" ? slot : null;
 
         if (!meta) {
           setStatus("Neplatná šablona.", "error", 6000);
@@ -818,9 +950,16 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) {
-          setStatus("VMID slot musí být 0–99.", "error", 6000);
-          return;
+        if (role === "admin") {
+          if (requestedVmid !== null && (!Number.isInteger(requestedVmid) || requestedVmid < 100 || requestedVmid > 999999)) {
+            setStatus("Admin může zadat celé VMID od 100 výš.", "error", 6000);
+            return;
+          }
+        } else {
+          if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 99)) {
+            setStatus("ID musí být 0–99.", "error", 6000);
+            return;
+          }
         }
 
         if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < meta.minDisk || diskGb > 250)) {
@@ -843,46 +982,86 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        if (getRole() !== "admin" && quotaCache) {
-          const projVms = quotaCache.vms + 1;
-          const projCores = quotaCache.cores + cores;
-          const projRamBytes = quotaCache.ramBytes + (memory * 1024 * 1024);
-          const projDiskBytes = quotaCache.diskBytes + ((diskGb || meta.defaultDisk) * 1024 * 1024 * 1024);
+        if (requestedVmid && pendingVmidConflict(requestedVmid)) {
+          setStatus(`VMID ${requestedVmid} je už rezervováno jiným právě vytvářeným strojem v tomto prohlížeči.`, "error", 6000);
+          return;
+        }
 
-          if (projVms > QUOTA.maxVms) {
-            setStatus("Limit: počet VM překročen.", "error", 6000);
-            return;
-          }
-          if (projCores > QUOTA.maxCores) {
-            setStatus("Limit: CPU překročen.", "error", 6000);
-            return;
-          }
-          if (projRamBytes > QUOTA.maxRamBytes) {
-            setStatus("Limit: RAM překročen.", "error", 6000);
-            return;
-          }
-          if (projDiskBytes > QUOTA.maxDiskBytes) {
-            setStatus("Limit: Disk překročen.", "error", 6000);
-            return;
+        if (quotaCache) {
+          const pending = pendingUsage();
+          const usedNow = {
+            vms: quotaCache.vms + pending.vms,
+            cores: quotaCache.cores + pending.cores,
+            ramBytes: quotaCache.ramBytes + pending.ramBytes,
+            diskBytes: quotaCache.diskBytes + pending.diskBytes,
+          };
+
+          const reqDiskGb = diskGb || meta.defaultDisk;
+          const reqDiskBytes = reqDiskGb * 1024 * 1024 * 1024;
+
+          if (role !== "admin") {
+            if (usedNow.vms + 1 > QUOTA.maxVms) {
+              setStatus("Limit: počet VM překročen.", "error", 6000);
+              return;
+            }
+            if (usedNow.cores + cores > QUOTA.maxCores) {
+              setStatus("Limit: CPU překročen.", "error", 6000);
+              return;
+            }
+            if (usedNow.ramBytes + memory * 1024 * 1024 > QUOTA.maxRamBytes) {
+              setStatus("Limit: RAM překročen.", "error", 6000);
+              return;
+            }
+            if (usedNow.diskBytes + reqDiskBytes > QUOTA.maxDiskBytes) {
+              setStatus("Limit: Disk překročen.", "error", 6000);
+              return;
+            }
           }
         }
 
-        await apiPost("/api/vm/create", {
+        requestKey = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        addPendingCreate({
+          requestKey,
+          createdAt: Date.now(),
+          name,
+          template,
+          pool: getPool(),
+          requestedVmid,
+          displaySlot: slot,
+          cores,
+          memory,
+          diskGb: diskGb || meta.defaultDisk,
+        });
+
+        renderQuotaBox();
+        if (document.getElementById("out")) refreshVmList().catch(() => {});
+
+        const payload = {
           name,
           template,
           cores,
           memory,
-          slot,
           diskGb,
           vmUser,
-          vmPass
-        });
+          vmPass,
+        };
 
-        setStatus("Hotovo. Přesměrovávám na Moje VM…", "success", 3000);
+        if (role === "admin") {
+          payload.vmid = requestedVmid;
+        } else {
+          payload.slot = slot;
+        }
+
+        await apiPost("/api/vm/create", payload);
+
+        setStatus("Požadavek přijat. VM se dokončuje…", "success", 3000);
+        scheduleRefresh(1500);
         setTimeout(() => {
           window.location.href = "myvm.html";
         }, 600);
       } catch (e) {
+        if (requestKey) removePendingCreateByKey(requestKey);
+        renderQuotaBox();
         setStatus(String(e.message || e), "error", 6000);
       } finally {
         btnCreate.disabled = false;
