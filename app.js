@@ -446,11 +446,6 @@ async function refreshQuotaFromList() {
     const data = await apiGet("/api/vm/list");
     const vms = data?.vms || [];
     quotaCache = calcUsageFromVms(vms);
-
-    for (const vm of vms) {
-      removePendingCreateByName(vm.name);
-    }
-
     renderQuotaBox();
   } catch {
     box.textContent = "Limity nelze načíst";
@@ -705,13 +700,17 @@ function initDashboardFilters() {
 }
 
 function materializePendingCreates(vms) {
+  const now = Date.now();
   const pending = loadPendingCreates();
   const names = new Set(vms.map((v) => v.name));
+
   for (const p of pending) {
-    if (names.has(p.name)) {
+    const ageMs = now - Number(p.createdAt || 0);
+    if (names.has(p.name) && ageMs > 15000) {
       removePendingCreateByKey(p.requestKey);
     }
   }
+
   return loadPendingCreates();
 }
 
