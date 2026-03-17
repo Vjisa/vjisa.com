@@ -385,6 +385,7 @@ function renderQuotaBox() {
   }
 
   const pending = pendingUsage();
+
   const usedVms = quotaCache.vms + pending.vms;
   const usedCores = quotaCache.cores + pending.cores;
   const usedRamBytes = quotaCache.ramBytes + pending.ramBytes;
@@ -440,11 +441,16 @@ function renderQuotaBox() {
 async function refreshQuotaFromList() {
   const box = document.getElementById("quotaBox");
   if (!box) return;
+
   try {
     const data = await apiGet("/api/vm/list");
     const vms = data?.vms || [];
     quotaCache = calcUsageFromVms(vms);
-    for (const vm of vms) removePendingCreateByName(vm.name);
+
+    for (const vm of vms) {
+      removePendingCreateByName(vm.name);
+    }
+
     renderQuotaBox();
   } catch {
     box.textContent = "Limity nelze načíst";
