@@ -322,12 +322,29 @@ function barClass(usedRatio) {
 function loadPendingCreates() {
   try {
     const now = Date.now();
+    const role = getRole();
+    const pool = getPool();
+    const username = localStorage.getItem("username") || "";
+
     const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
-    const filtered = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
-    if (filtered.length !== arr.length) {
-      localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(filtered));
+    const notExpired = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
+
+    let visible;
+    if (role === "admin") {
+      visible = notExpired;
+    } else {
+      visible = notExpired.filter((x) => {
+        const samePool = String(x.pool || "") === String(pool || "");
+        const sameUser = String(x.username || "") === String(username || "");
+        return samePool || sameUser;
+      });
     }
-    return filtered;
+
+    if (notExpired.length !== arr.length) {
+      localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(notExpired));
+    }
+
+    return visible;
   } catch {
     return [];
   }
@@ -338,9 +355,14 @@ function savePendingCreates(arr) {
 }
 
 function addPendingCreate(entry) {
-  const arr = loadPendingCreates();
-  arr.push(entry);
-  savePendingCreates(arr);
+  const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  arr.push({
+    ...entry,
+    username: localStorage.getItem("username") || "",
+    pool: getPool(),
+    role: getRole(),
+  });
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
 
 function removePendingCreateByKey(requestKey) {
@@ -701,17 +723,30 @@ function initDashboardFilters() {
 
 function materializePendingCreates(vms) {
   const now = Date.now();
-  const pending = loadPendingCreates();
-  const names = new Set(vms.map((v) => v.name));
+  const allPending = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  const names = new Set(vms.map((v) => `${v.pool || ""}::${v.name}`));
 
-  for (const p of pending) {
+  const cleaned = allPending.filter((p) => {
     const ageMs = now - Number(p.createdAt || 0);
-    if (names.has(p.name) && ageMs > 15000) {
-      removePendingCreateByKey(p.requestKey);
-    }
-  }
+    const key = `${p.pool || ""}::${p.name}`;
+    if (names.has(key) && ageMs > 15000) return false;
+    if (ageMs > 30 * 60 * 1000) return false;
+    return true;
+  });
 
-  return loadPendingCreates();
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(cleaned));
+
+  const role = getRole();
+  const pool = getPool();
+  const username = localStorage.getItem("username") || "";
+
+  if (role === "admin") return cleaned;
+
+  return cleaned.filter((x) => {
+    const samePool = String(x.pool || "") === String(pool || "");
+    const sameUser = String(x.username || "") === String(username || "");
+    return samePool || sameUser;
+  });
 }
 
 function fakeVmFromPending(p) {
@@ -1023,17 +1058,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         requestKey = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         addPendingCreate({
-          requestKey,
-          createdAt: Date.now(),
-          name,
-          template,
-          pool: getPool(),
-          requestedVmid,
-          displaySlot: slot,
-          cores,
-          memory,
-          diskGb: diskGb || meta.defaultDisk,
-        });
+  requestKey,
+  createdAt: Date.now(),
+  name,
+  template,
+  pool: getPool(),
+  username: localStorage.getItem("username") || "",
+  requestedVmid,
+  displaySlot: slot,
+  cores,
+  memory,
+  diskGb: diskGb || meta.defaultDisk,
+});
 
         renderQuotaBox();
         if (document.getElementById("out")) refreshVmList().catch(() => {});
