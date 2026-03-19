@@ -329,22 +329,17 @@ function loadPendingCreates() {
     const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
     const notExpired = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
 
-    let visible;
-    if (role === "admin") {
-      visible = notExpired;
-    } else {
-      visible = notExpired.filter((x) => {
-        const samePool = String(x.pool || "") === String(pool || "");
-        const sameUser = String(x.username || "") === String(username || "");
-        return samePool || sameUser;
-      });
-    }
-
     if (notExpired.length !== arr.length) {
       localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(notExpired));
     }
 
-    return visible;
+    if (role === "admin") return notExpired;
+
+    return notExpired.filter((x) => {
+      const samePool = String(x.pool || "") === String(pool || "");
+      const sameUser = String(x.username || "") === String(username || "");
+      return samePool || sameUser;
+    });
   } catch {
     return [];
   }
@@ -357,10 +352,19 @@ function savePendingCreates(arr) {
 function addPendingCreate(entry) {
   const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   arr.push({
-    ...entry,
-    username: localStorage.getItem("username") || "",
-    pool: getPool(),
-    role: getRole(),
+    addPendingCreate({
+  requestKey,
+  createdAt: Date.now(),
+  name,
+  template,
+  pool: getPool(),
+  username: localStorage.getItem("username") || "",
+  requestedVmid,
+  displaySlot: slot,
+  cores,
+  memory,
+  diskGb: diskGb || meta.defaultDisk,
+});
   });
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
