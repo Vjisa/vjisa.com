@@ -550,7 +550,8 @@ function applyTemplatePreset() {
 
 function vmIpText(vm) {
   const ip = vm.ip || vm.ipAddress || vm.primaryIp || null;
-  return ip ? ` | ${ip}` : "";
+  if (ip) return ` | ${ip}`;
+  return vm.status === "running" ? " | adresa není dostupná" : "";
 }
 
 function makeVmRow(vm, role) {
