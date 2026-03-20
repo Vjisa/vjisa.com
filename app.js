@@ -359,8 +359,6 @@ function addPendingCreate(entry) {
   });
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
-}
 
 function removePendingCreateByKey(requestKey) {
   const arr = loadPendingCreates().filter((x) => x.requestKey !== requestKey);
