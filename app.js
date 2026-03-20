@@ -352,20 +352,13 @@ function savePendingCreates(arr) {
 function addPendingCreate(entry) {
   const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   arr.push({
-    addPendingCreate({
-  requestKey,
-  createdAt: Date.now(),
-  name,
-  template,
-  pool: getPool(),
-  username: localStorage.getItem("username") || "",
-  requestedVmid,
-  displaySlot: slot,
-  cores,
-  memory,
-  diskGb: diskGb || meta.defaultDisk,
-});
+    ...entry,
+    username: localStorage.getItem("username") || "",
+    pool: getPool(),
+    role: getRole(),
   });
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
+}
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
 
