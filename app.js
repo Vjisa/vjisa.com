@@ -1086,13 +1086,22 @@ document.addEventListener("DOMContentLoaded", () => {
           payload.slot = slot;
         }
 
-        await apiPost("/api/vm/create", payload);
+       await apiPost("/api/vm/create", payload);
 
-        setStatus("Požadavek přijat. VM se dokončuje…", "success", 3000);
-        scheduleRefresh(1500);
-        setTimeout(() => {
-          window.location.href = "myvm.html";
-        }, 600);
+if (requestKey) {
+  removePendingCreateByKey(requestKey);
+}
+
+await refreshQuotaFromList();
+
+if (document.getElementById("out")) {
+  await refreshVmList();
+}
+
+setStatus("VM byla vytvořena.", "success", 3000);
+setTimeout(() => {
+  window.location.href = "myvm.html";
+}, 400);
       } catch (e) {
         if (requestKey) removePendingCreateByKey(requestKey);
         renderQuotaBox();
