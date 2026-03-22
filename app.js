@@ -387,6 +387,55 @@ function pendingVmidConflict(requestedVmid, requestKey = null) {
   );
 }
 
+function phaseLabel(phase) {
+  switch (phase) {
+    case "queued": return "zařazuje se";
+    case "clone": return "klonuje se";
+    case "config": return "konfiguruje se";
+    case "start": return "spouští se";
+    case "done": return "hotovo";
+    case "error": return "chyba";
+    default: return "vytváří se";
+  }
+}
+
+
+async function syncPendingCreateStatuses(vms) {
+  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  if (!raw.length) return;
+
+  const vmKeys = new Set((vms || []).map(v => `${v.pool || ""}::${v.name}`));
+  const next = [];
+
+  for (const item of raw) {
+    try {
+      const data = await apiGet(`/api/vm/create-status/${encodeURIComponent(item.requestKey)}`);
+      const task = data?.task || {};
+
+      const merged = {
+        ...item,
+        phase: task.phase || item.phase || "queued",
+        status: task.status || item.status || "running",
+        error: task.error || null,
+        vmid: task.vmid ?? item.vmid ?? null,
+      };
+
+      const vmKey = `${merged.pool || ""}::${merged.name}`;
+      const existsInList = vmKeys.has(vmKey);
+
+      if (merged.status === "done" && existsInList) {
+        continue;
+      }
+
+      next.push(merged);
+    } catch {
+      next.push(item);
+    }
+  }
+
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
+}
+
 function renderQuotaBox() {
   const box = document.getElementById("quotaBox");
   if (!box) return;
@@ -564,7 +613,12 @@ function makeVmRow(vm, role) {
 
   const pending = getPending(vm.vmid);
   let displayStatus = vm.status;
-  if (vm.pendingCreate) displayStatus = "vytváří se";
+  if (vm.pendingCreate) {
+  displayStatus = phaseLabel(vm.pendingCreatePhase);
+  if (vm.pendingCreateError) {
+    displayStatus += `: ${vm.pendingCreateError}`;
+  }
+}
   else if (pending === "starting") displayStatus = "starting";
   else if (pending === "stopping") displayStatus = "stopping";
 
@@ -757,6 +811,8 @@ function fakeVmFromPending(p) {
     consoleUrl: null,
     pool: p.pool || getPool(),
     ip: null,
+    pendingCreatePhase: p.phase || "queued",
+pendingCreateError: p.error || null,
   };
 }
 
@@ -768,6 +824,7 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
+  await syncPendingCreateStatuses(vmsAll);
   const pendingCreates = materializePendingCreates(vmsAll);
   quotaCache = calcUsageFromVms(vmsAll);
 
