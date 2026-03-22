@@ -805,14 +805,14 @@ function fakeVmFromPending(p) {
     name: p.name,
     status: "creating",
     pendingCreate: true,
+     pendingCreatePhase: p.phase || "queued",
+pendingCreateError: p.error || null,
     maxcpu: Number(p.cores) || 0,
     maxmem: (Number(p.memory) || 0) * 1024 * 1024,
     maxdisk: (Number(p.diskGb) || 0) * 1024 * 1024 * 1024,
     consoleUrl: null,
     pool: p.pool || getPool(),
     ip: null,
-    pendingCreatePhase: p.phase || "queued",
-pendingCreateError: p.error || null,
   };
 }
 
