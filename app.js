@@ -1088,10 +1088,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
        await apiPost("/api/vm/create", payload);
 
-if (requestKey) {
-  removePendingCreateByKey(requestKey);
-}
-
 await refreshQuotaFromList();
 
 if (document.getElementById("out")) {
@@ -1099,9 +1095,10 @@ if (document.getElementById("out")) {
 }
 
 setStatus("VM byla vytvořena.", "success", 3000);
+        scheduleRefresh(1500);
 setTimeout(() => {
   window.location.href = "myvm.html";
-}, 400);
+}, 600);
       } catch (e) {
         if (requestKey) removePendingCreateByKey(requestKey);
         renderQuotaBox();
