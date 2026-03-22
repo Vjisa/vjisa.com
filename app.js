@@ -1110,7 +1110,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         requestKey = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        addPendingCreate({
+addPendingCreate({
   requestKey,
   createdAt: Date.now(),
   name,
@@ -1122,6 +1122,8 @@ document.addEventListener("DOMContentLoaded", () => {
   cores,
   memory,
   diskGb: diskGb || meta.defaultDisk,
+  phase: "queued",
+  status: "running",
 });
 
         renderQuotaBox();
@@ -1135,6 +1137,7 @@ document.addEventListener("DOMContentLoaded", () => {
           diskGb,
           vmUser,
           vmPass,
+          requestKey,
         };
 
         if (role === "admin") {
