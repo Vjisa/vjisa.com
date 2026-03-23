@@ -1110,10 +1110,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         requestKey = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const pendingName = String(name || "").trim().toLowerCase();
 addPendingCreate({
   requestKey,
   createdAt: Date.now(),
-  name,
+  name: pendingName,
   template,
   pool: getPool(),
   username: localStorage.getItem("username") || "",
@@ -1146,19 +1147,29 @@ addPendingCreate({
           payload.slot = slot;
         }
 
-       await apiPost("/api/vm/create", payload);
+       const createPromise = apiPost("/api/vm/create", payload).catch((e) => {
+  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  const next = raw.map((x) =>
+    x.requestKey === requestKey
+      ? {
+          ...x,
+          phase: "error",
+          status: "error",
+          error: String(e.message || e),
+        }
+      : x
+  );
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
+});
 
-await refreshQuotaFromList();
+setStatus("Požadavek byl odeslán. Přesměrovávám…", "success", 1500);
 
-if (document.getElementById("out")) {
-  await refreshVmList();
-}
-
-setStatus("VM byla vytvořena.", "success", 3000);
-        scheduleRefresh(1500);
 setTimeout(() => {
   window.location.href = "myvm.html";
-}, 600);
+}, 150);
+
+void createPromise;
+return;
       } catch (e) {
         if (requestKey) removePendingCreateByKey(requestKey);
         renderQuotaBox();
