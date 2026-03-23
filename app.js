@@ -95,13 +95,13 @@ const PENDING_CREATE_KEY = "mojevm.pendingCreates";
 function loadUiPrefs() {
   try {
     return {
-      autoRefreshInterval: "5000",
+      autoRefreshInterval: "1000",
       confirmDangerousActions: true,
       ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}"),
     };
   } catch {
     return {
-      autoRefreshInterval: "5000",
+      autoRefreshInterval: "1000",
       confirmDangerousActions: true,
     };
   }
@@ -114,8 +114,8 @@ function saveUiPrefs(next) {
 }
 
 function getAutoRefreshMs() {
-  const n = Number(loadUiPrefs().autoRefreshInterval || 5000);
-  return Number.isFinite(n) ? n : 5000;
+  const n = Number(loadUiPrefs().autoRefreshInterval || 1000);
+  return Number.isFinite(n) ? n : 1000;
 }
 
 function confirmDangerousActionsEnabled() {
@@ -927,7 +927,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const prefs = loadUiPrefs();
 
     if (autoRefreshEl) {
-      autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
+      autoRefreshEl.value = String(prefs.autoRefreshInterval || "1000");
       autoRefreshEl.addEventListener("change", () => {
         saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
         startAutoPoll();
