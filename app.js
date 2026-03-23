@@ -1147,7 +1147,11 @@ addPendingCreate({
           payload.slot = slot;
         }
 
-       const createPromise = apiPost("/api/vm/create", payload).catch((e) => {
+       let createRes;
+
+try {
+  createRes = await apiPost("/api/vm/create", payload);
+} catch (e) {
   const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   const next = raw.map((x) =>
     x.requestKey === requestKey
@@ -1160,15 +1164,33 @@ addPendingCreate({
       : x
   );
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
-});
+  throw e;
+}
 
-setStatus("Požadavek byl odeslán. Přesměrovávám…", "success", 1500);
+const acceptedRequestKey = createRes?.requestKey || requestKey;
+
+{
+  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  const next = raw.map((x) =>
+    x.requestKey === requestKey
+      ? {
+          ...x,
+          requestKey: acceptedRequestKey,
+          phase: "queued",
+          status: "running",
+          error: null,
+        }
+      : x
+  );
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
+}
+
+setStatus("Požadavek byl přijat. Přesměrovávám…", "success", 1200);
 
 setTimeout(() => {
   window.location.href = "myvm.html";
-}, 150);
+}, 250);
 
-void createPromise;
 return;
       } catch (e) {
         if (requestKey) removePendingCreateByKey(requestKey);
