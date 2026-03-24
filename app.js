@@ -404,7 +404,9 @@ async function syncPendingCreateStatuses(vms) {
   const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   if (!raw.length) return;
 
-  const vmKeys = new Set((vms || []).map(v => `${v.pool || ""}::${v.name}`));
+  const vmKeys = new Set(
+    (vms || []).map(v => `${v.pool || ""}::${String(v.name || "").trim().toLowerCase()}`)
+  );
   const next = [];
 
   for (const item of raw) {
@@ -413,25 +415,42 @@ async function syncPendingCreateStatuses(vms) {
       const task = data?.task || {};
 
       const merged = {
-  ...item,
-  name: String(task.name || item.name || "").trim().toLowerCase(),
-  pool: String(task.pool || item.pool || ""),
-  phase: task.phase || item.phase || "queued",
-  status: task.status || item.status || "running",
-  error: task.error || null,
-  vmid: task.vmid ?? item.vmid ?? null,
-};
+        ...item,
+        name: String(task.name || item.name || "").trim().toLowerCase(),
+        pool: String(task.pool || item.pool || ""),
+        phase: task.phase || item.phase || "queued",
+        status: task.status || item.status || "running",
+        error: task.error || null,
+        vmid: task.vmid ?? item.vmid ?? item.requestedVmid ?? null,
+      };
 
       const vmKey = `${merged.pool || ""}::${merged.name}`;
-const existsInList = vmKeys.has(vmKey);
-const existsByVmid = (vms || []).some((v) => Number(v.vmid) === Number(merged.vmid));
+      const existsInList = vmKeys.has(vmKey);
+      const existsByVmid = (vms || []).some(
+        (v) => Number(v.vmid) === Number(merged.vmid)
+      );
 
-if (merged.status === "done" && (existsInList || existsByVmid)) {
-  continue;
-}
+      if (merged.status === "done" && (existsInList || existsByVmid)) {
+        continue;
+      }
 
       next.push(merged);
-    } catch {
+    } catch (e) {
+      const msg = String(e?.message || e || "");
+      const normalizedName = String(item.name || "").trim().toLowerCase();
+      const vmKey = `${item.pool || ""}::${normalizedName}`;
+      const existsInList = vmKeys.has(vmKey);
+      const existsByVmid = (vms || []).some(
+        (v) => Number(v.vmid) === Number(item.vmid ?? item.requestedVmid)
+      );
+      const ageMs = Date.now() - Number(item.createdAt || 0);
+
+      if (msg.includes("Create task nenalezen") || msg.includes("404")) {
+        if (existsInList || existsByVmid || ageMs > 5 * 60 * 1000) {
+          continue;
+        }
+      }
+
       next.push(item);
     }
   }
