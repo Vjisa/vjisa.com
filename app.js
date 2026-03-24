@@ -413,19 +413,22 @@ async function syncPendingCreateStatuses(vms) {
       const task = data?.task || {};
 
       const merged = {
-        ...item,
-        phase: task.phase || item.phase || "queued",
-        status: task.status || item.status || "running",
-        error: task.error || null,
-        vmid: task.vmid ?? item.vmid ?? null,
-      };
+  ...item,
+  name: String(task.name || item.name || "").trim().toLowerCase(),
+  pool: String(task.pool || item.pool || ""),
+  phase: task.phase || item.phase || "queued",
+  status: task.status || item.status || "running",
+  error: task.error || null,
+  vmid: task.vmid ?? item.vmid ?? null,
+};
 
       const vmKey = `${merged.pool || ""}::${merged.name}`;
-      const existsInList = vmKeys.has(vmKey);
+const existsInList = vmKeys.has(vmKey);
+const existsByVmid = (vms || []).some((v) => Number(v.vmid) === Number(merged.vmid));
 
-      if (merged.status === "done" && existsInList) {
-        continue;
-      }
+if (merged.status === "done" && (existsInList || existsByVmid)) {
+  continue;
+}
 
       next.push(merged);
     } catch {
