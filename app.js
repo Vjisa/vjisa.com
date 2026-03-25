@@ -849,14 +849,16 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-  await syncPendingCreateStatuses(vmsAll);
-  const pendingCreates = materializePendingCreates(vmsAll);
-  quotaCache = calcUsageFromVms(vmsAll);
+const pendingCreates = materializePendingCreates(vmsAll);
+quotaCache = calcUsageFromVms(vmsAll);
+const merged = [
+  ...vmsAll.filter((v) => getPending(v.vmid) !== "deleting"),
+  ...pendingCreates.map(fakeVmFromPending),
+];
 
-  const merged = [
-    ...vmsAll.filter((v) => getPending(v.vmid) !== "deleting"),
-    ...pendingCreates.map(fakeVmFromPending),
-  ];
+syncPendingCreateStatuses(vmsAll).then(() => {
+  scheduleRefresh(1000);
+}).catch(() => {});
 
   updateStats(merged);
 
