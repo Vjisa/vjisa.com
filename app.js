@@ -352,11 +352,11 @@ function savePendingCreates(arr) {
 function addPendingCreate(entry) {
   const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   arr.push({
-    ...entry,
-    username: localStorage.getItem("username") || "",
-    pool: getPool(),
-    role: getRole(),
-  });
+  ...entry,
+  username: localStorage.getItem("username") || "",
+  pool: getPool() || (getRole() === "admin" ? "mojevm" : ""),
+  role: getRole(),
+});
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
 
