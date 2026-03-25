@@ -430,9 +430,12 @@ async function syncPendingCreateStatuses(vms) {
         (v) => Number(v.vmid) === Number(merged.vmid)
       );
 
-      if (merged.status === "done" && (existsInList || existsByVmid)) {
-        continue;
-      }
+     if (merged.status === "done" && (existsInList || existsByVmid)) {
+  const ageMs = Date.now() - Number(merged.createdAt || 0);
+  if (ageMs > 10 * 1000) {
+    continue;
+  }
+}
 
       next.push(merged);
     } catch (e) {
@@ -801,7 +804,7 @@ function materializePendingCreates(vms) {
   const cleaned = allPending.filter((p) => {
     const ageMs = now - Number(p.createdAt || 0);
     const key = `${p.pool || ""}::${p.name}`;
-    if (names.has(key) && ageMs > 15000) return false;
+  if (names.has(key) && ageMs > 5 * 60 * 1000) return false;
     if (ageMs > 30 * 60 * 1000) return false;
     return true;
   });
