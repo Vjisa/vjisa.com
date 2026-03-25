@@ -95,13 +95,13 @@ const PENDING_CREATE_KEY = "mojevm.pendingCreates";
 function loadUiPrefs() {
   try {
     return {
-      autoRefreshInterval: "1000",
+      autoRefreshInterval: "5000",
       confirmDangerousActions: true,
       ...JSON.parse(localStorage.getItem(UI_PREFS_KEY) || "{}"),
     };
   } catch {
     return {
-      autoRefreshInterval: "1000",
+      autoRefreshInterval: "5000",
       confirmDangerousActions: true,
     };
   }
