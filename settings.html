@@ -147,12 +147,16 @@
 
   
   <script src="auth.js?v=20260317e" defer></script>
+  <script src="app.js?v=20260317e" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("clearLocal").addEventListener("click", () => {
-        localStorage.clear();
-        window.location.href = "index.html";
-      });
+      const clearBtn = document.getElementById("clearLocal");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          localStorage.clear();
+          window.location.href = "index.html";
+        });
+      }
     });
   </script>
 </body>
