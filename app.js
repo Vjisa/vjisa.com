@@ -114,8 +114,8 @@ function saveUiPrefs(next) {
 }
 
 function getAutoRefreshMs() {
-  const n = Number(loadUiPrefs().autoRefreshInterval || 1000);
-  return Number.isFinite(n) ? n : 1000;
+  const n = Number(loadUiPrefs().autoRefreshInterval || 5000);
+  return Number.isFinite(n) ? n : 5000;
 }
 
 function confirmDangerousActionsEnabled() {
@@ -954,7 +954,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const prefs = loadUiPrefs();
 
     if (autoRefreshEl) {
-      autoRefreshEl.value = String(prefs.autoRefreshInterval || "1000");
+      autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
       autoRefreshEl.addEventListener("change", () => {
         saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
         startAutoPoll();
