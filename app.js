@@ -856,9 +856,8 @@ const merged = [
   ...pendingCreates.map(fakeVmFromPending),
 ];
 
-syncPendingCreateStatuses(vmsAll).then(() => {
-  scheduleRefresh(1000);
-}).catch(() => {});
+scheduleRefresh(getAutoRefreshMs());
+syncPendingCreateStatuses(vmsAll).catch(() => {});
 
   updateStats(merged);
 
