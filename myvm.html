@@ -1,23 +1,83 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MojeVM – Moje VM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20260317a" />
+</head>
 
+<body class="theme-light" data-require-auth="1">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">☁️</div>
+        <div>
+          <div class="brand-name">MojeVM</div>
+          <small class="brand-subtitle">Portál virtuálních strojů</small>
+        </div>
+      </div>
 
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="home.html"><span class="icon">🏠</span> Dashboard</a>
+        <a class="sidebar-link active" href="myvm.html"><span class="icon">🖥️</span> Moje VM</a>
+        <a class="sidebar-link" href="vm.html"><span class="icon">➕</span> Vytvořit VM</a>
+        <a class="sidebar-link" href="settings.html"><span class="icon">⚙️</span> Nastavení</a>
+        <a class="sidebar-link" data-role="admin" href="audit.html"><span class="icon">🧾</span> Audit</a>
+      </nav>
 
-<div class="page-actions">
-  <button
-    class="btn btn-light"
-    type="button"
-    style="cursor:help"
-    title="IP adresa se v přehledu zobrazí správně až po spuštění virtuálního stroje a po prvním úspěšném přihlášení do systému."
-  >
-    IP ?
-  </button>
-  <button
-    class="btn btn-light"
-    type="button"
-    style="cursor:help"
-    title="Při mazání více virtuálních strojů po sobě doporučujeme vždy počkat, až po předchozí akci zmizí stavová hláška o smazání. Server tak stihne předchozí požadavek správně dokončit a zpracovat další smazání."
-  >
-    Smazat ?
-  </button>
-  <a class="btn btn-primary" href="vm.html">+ Nová VM</a>
-  <button class="btn btn-light btn-icon" id="refreshBtn" type="button" title="Obnovit">↻</button>
-</div>
+      <div class="sidebar-footer d-flex gap-2 align-items-center">
+        <button class="btn btn-light btn-icon" id="themeToggle" type="button" title="Přepnout motiv">🌓</button>
+        <a class="sidebar-link" href="#" id="logoutLink"><span class="icon">🚪</span> Odhlásit se</a>
+      </div>
+
+      <div class="p-3 small text-muted">
+        <div><b data-bind="username">—</b></div>
+        <div><span data-bind="role">—</span> | pool: <span data-bind="pool">—</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="alert alert-info" id="pendingBanner" style="display:none"></div>
+        <div class="text-muted small mb-2" id="diskInfo" style="display:none"></div>
+        <div>
+          <h1 class="page-title">Moje VM</h1>
+          <p class="page-subtitle">Zobrazení podle poolu (user) / všech poolů (admin).</p>
+        </div>
+        <div class="page-actions d-flex gap-2 align-items-center flex-wrap">
+          <button
+            class="btn btn-light btn-sm"
+            type="button"
+            style="cursor:help"
+            title="IP adresa se v přehledu zobrazí správně až po spuštění virtuálního stroje a po prvním úspěšném přihlášení do systému."
+          >
+            IP ?
+          </button>
+          <button
+            class="btn btn-light btn-sm"
+            type="button"
+            style="cursor:help"
+            title="Při mazání více virtuálních strojů po sobě doporučujeme vždy počkat, až po předchozí akci zmizí stavová hláška o smazání. Server tak stihne předchozí požadavek správně dokončit a zpracovat další smazání."
+          >
+            Smazat ?
+          </button>
+          <a class="btn btn-primary" href="vm.html">+ Nová VM</a>
+          <button class="btn btn-light btn-icon" id="refreshBtn" type="button" title="Obnovit">↻</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-4">
+          <div id="out" class="text-muted">Načítám…</div>
+          <div class="text-muted small mt-2" id="status"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="auth.js?v=20260317a" defer></script>
+  <script src="app.js?v=20260317a" defer></script>
+</body>
+</html>
