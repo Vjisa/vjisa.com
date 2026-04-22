@@ -41,7 +41,6 @@
   <script src="auth.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // když už má token, pošli rovnou na home
       if (localStorage.getItem("token")) {
         window.location.href = "home.html";
         return;
@@ -61,24 +60,39 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
           });
-          const d = await r.json();
+
+          let d = {};
+          try {
+            d = await r.json();
+          } catch {
+            d = {};
+          }
 
           if (!r.ok || !d.ok) {
-            err.textContent = d?.error || "Přihlášení selhalo.";
+            if (r.status === 401 || r.status === 403) {
+              err.textContent = "Neplatné přihlašovací údaje.";
+            } else if (d?.error) {
+              err.textContent = d.error;
+            } else {
+              err.textContent = "Přihlášení selhalo.";
+            }
             err.style.display = "";
             return;
           }
 
-          // login response: { ok, token, role, pool }
           localStorage.setItem("token", d.token);
           localStorage.setItem("role", d.role);
           localStorage.setItem("pool", d.pool ?? "");
           localStorage.setItem("username", username);
 
-          // pro jistotu sync server-side truth (whoami) až na další stránce
           window.location.href = "home.html";
         } catch (e) {
-          err.textContent = String(e.message || e);
+          const msg = String(e?.message || e || "");
+          if (msg.toLowerCase().includes("failed to fetch")) {
+            err.textContent = "Nepodařilo se spojit se serverem.";
+          } else {
+            err.textContent = "Přihlášení selhalo. Zkus to znovu.";
+          }
           err.style.display = "";
         }
       }
