@@ -130,9 +130,25 @@ function getPool() {
   return localStorage.getItem("pool") || "";
 }
 
+function getUsername() {
+  return localStorage.getItem("username") || "";
+}
+
+function normalizeVmName(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
 function authHeaders(extra = {}) {
   const token = localStorage.getItem("token");
   return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+}
+
+function requireAuth() {
+  if (!localStorage.getItem("token")) {
+    window.location.href = "index.html";
+    return false;
+  }
+  return true;
 }
 
 function setStatus(msg, type = "info", autoHideMs = 0) {
@@ -140,11 +156,10 @@ function setStatus(msg, type = "info", autoHideMs = 0) {
   if (!el) return;
 
   clearTimeout(actionState.statusTimer);
-
   el.textContent = msg || "";
   el.style.display = msg ? "" : "none";
-
   el.classList.remove("text-danger", "text-success", "text-muted");
+
   if (type === "error") el.classList.add("text-danger");
   else if (type === "success") el.classList.add("text-success");
   else el.classList.add("text-muted");
@@ -167,30 +182,60 @@ async function parseResponse(r) {
 }
 
 async function apiGet(path) {
-  const r = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  let r;
+  try {
+    r = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  } catch {
+    throw new Error("Nepodařilo se spojit se serverem.");
+  }
   if (r.status === 401) {
     localStorage.clear();
     window.location.href = "index.html";
     return;
   }
   const d = await parseResponse(r);
-  if (!r.ok) throw new Error(d?.error || d?.message || String(d));
+  if (!r.ok) throw new Error(d?.error || d?.message || "Server vrátil chybu.");
   return d;
 }
 
 async function apiPost(path, body) {
-  const r = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(body),
-  });
+  let r;
+  try {
+    r = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error("Nepodařilo se spojit se serverem.");
+  }
   if (r.status === 401) {
     localStorage.clear();
     window.location.href = "index.html";
     return;
   }
   const d = await parseResponse(r);
-  if (!r.ok) throw new Error(d?.error || d?.message || String(d));
+  if (!r.ok) throw new Error(d?.error || d?.message || "Server vrátil chybu.");
+  return d;
+}
+
+async function apiDelete(path) {
+  let r;
+  try {
+    r = await fetch(`${API_BASE}${path}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+  } catch {
+    throw new Error("Nepodařilo se spojit se serverem.");
+  }
+  if (r.status === 401) {
+    localStorage.clear();
+    window.location.href = "index.html";
+    return;
+  }
+  const d = await parseResponse(r);
+  if (!r.ok) throw new Error(d?.error || d?.message || "Server vrátil chybu.");
   return d;
 }
 
@@ -244,7 +289,7 @@ function restoreOpenBubbles() {
 }
 
 function applyFilters(vms) {
-  let out = vms;
+  let out = vms || [];
   if (uiState.poolFilter) out = out.filter((v) => (v.pool || "") === uiState.poolFilter);
   if (uiState.statusFilter === "running") out = out.filter((v) => v.status === "running");
   if (uiState.statusFilter === "stopped") out = out.filter((v) => v.status !== "running");
@@ -266,26 +311,39 @@ function getPending(vmid) {
   return p.kind;
 }
 
-function scheduleRefresh(ms = getAutoRefreshMs()) {
+function scheduleRefresh(ms = null) {
   clearTimeout(actionState.refreshTimer);
+
+  if (ms === 0) {
+    actionState.refreshTimer = setTimeout(() => {
+      refreshVmList().catch(() => {});
+    }, 0);
+    return;
+  }
+
+  const effectiveMs = ms == null ? getAutoRefreshMs() : ms;
+  if (!Number.isFinite(effectiveMs) || effectiveMs <= 0) return;
+
   actionState.refreshTimer = setTimeout(() => {
     refreshVmList().catch(() => {});
-  }, ms);
+  }, effectiveMs);
 }
 
 function startAutoPoll() {
   clearInterval(actionState.pollTimer);
-  const ms = getAutoRefreshMs();
   const out = document.getElementById("out");
+  const ms = getAutoRefreshMs();
+
   if (!out || ms <= 0) return;
+
   actionState.pollTimer = setInterval(() => {
     refreshVmList().catch(() => {});
   }, ms);
 }
 
 function updateStats(vms) {
-  const total = vms.length;
-  const running = vms.filter((v) => v.status === "running").length;
+  const total = (vms || []).length;
+  const running = (vms || []).filter((v) => v.status === "running").length;
   const stopped = total - running;
 
   const a = document.getElementById("statTotal");
@@ -324,11 +382,10 @@ function loadPendingCreates() {
     const now = Date.now();
     const role = getRole();
     const pool = getPool();
-    const username = localStorage.getItem("username") || "";
-
+    const username = getUsername();
     const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
-    const notExpired = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
 
+    const notExpired = arr.filter((x) => now - Number(x.createdAt || 0) < 30 * 60 * 1000);
     if (notExpired.length !== arr.length) {
       localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(notExpired));
     }
@@ -346,28 +403,23 @@ function loadPendingCreates() {
 }
 
 function savePendingCreates(arr) {
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
+  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr || []));
 }
 
 function addPendingCreate(entry) {
   const arr = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   arr.push({
-  ...entry,
-  username: localStorage.getItem("username") || "",
-  pool: getPool() || (getRole() === "admin" ? "mojevm" : ""),
-  role: getRole(),
-});
+    ...entry,
+    username: getUsername(),
+    pool: entry.pool || getPool() || (getRole() === "admin" ? "mojevm" : ""),
+    role: getRole(),
+  });
   localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(arr));
 }
 
 function removePendingCreateByKey(requestKey) {
-  const arr = loadPendingCreates().filter((x) => x.requestKey !== requestKey);
-  savePendingCreates(arr);
-}
-
-function removePendingCreateByName(name) {
-  const arr = loadPendingCreates().filter((x) => x.name !== name);
-  savePendingCreates(arr);
+  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+  savePendingCreates(raw.filter((x) => x.requestKey !== requestKey));
 }
 
 function pendingUsage() {
@@ -387,6 +439,20 @@ function pendingVmidConflict(requestedVmid, requestKey = null) {
   );
 }
 
+function pendingNameConflict(name, pool = getPool(), requestKey = null) {
+  const normalizedName = normalizeVmName(name);
+  const normalizedPool = String(pool || "");
+
+  if (!normalizedName) return false;
+
+  return loadPendingCreates().some((x) => (
+    x.requestKey !== requestKey &&
+    normalizeVmName(x.name) === normalizedName &&
+    String(x.pool || "") === normalizedPool &&
+    String(x.status || "running") !== "error"
+  ));
+}
+
 function phaseLabel(phase) {
   switch (phase) {
     case "queued": return "zařazuje se";
@@ -399,14 +465,10 @@ function phaseLabel(phase) {
   }
 }
 
-
 async function syncPendingCreateStatuses(vms) {
   const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
   if (!raw.length) return;
 
-  const vmKeys = new Set(
-    (vms || []).map(v => `${v.pool || ""}::${String(v.name || "").trim().toLowerCase()}`)
-  );
   const next = [];
 
   for (const item of raw) {
@@ -416,7 +478,7 @@ async function syncPendingCreateStatuses(vms) {
 
       const merged = {
         ...item,
-        name: String(task.name || item.name || "").trim().toLowerCase(),
+        name: normalizeVmName(task.name || item.name || ""),
         pool: String(task.pool || item.pool || ""),
         phase: task.phase || item.phase || "queued",
         status: task.status || item.status || "running",
@@ -425,31 +487,35 @@ async function syncPendingCreateStatuses(vms) {
       };
 
       const vmKey = `${merged.pool || ""}::${merged.name}`;
-      const existsInList = vmKeys.has(vmKey);
-      const existsByVmid = (vms || []).some(
-        (v) => Number(v.vmid) === Number(merged.vmid)
-      );
+      const realVm = (vms || []).find((v) => {
+        const vKey = `${v.pool || ""}::${normalizeVmName(v.name)}`;
+        return vKey === vmKey || Number(v.vmid) === Number(merged.vmid);
+      });
 
-     if (merged.status === "done" && (existsInList || existsByVmid)) {
-  const ageMs = Date.now() - Number(merged.createdAt || 0);
-  if (ageMs > 10 * 1000) {
-    continue;
-  }
-}
+      const isReallyReady = !!realVm && realVm.status === "running";
+
+      if (merged.status === "done" && isReallyReady) {
+        const ageMs = Date.now() - Number(merged.createdAt || 0);
+        if (ageMs > 10 * 1000) {
+          continue;
+        }
+      }
 
       next.push(merged);
     } catch (e) {
       const msg = String(e?.message || e || "");
-      const normalizedName = String(item.name || "").trim().toLowerCase();
+      const normalizedName = normalizeVmName(item.name);
       const vmKey = `${item.pool || ""}::${normalizedName}`;
-      const existsInList = vmKeys.has(vmKey);
-      const existsByVmid = (vms || []).some(
-        (v) => Number(v.vmid) === Number(item.vmid ?? item.requestedVmid)
-      );
+      const realVm = (vms || []).find((v) => {
+        const vKey = `${v.pool || ""}::${normalizeVmName(v.name)}`;
+        return vKey === vmKey || Number(v.vmid) === Number(item.vmid ?? item.requestedVmid);
+      });
+
       const ageMs = Date.now() - Number(item.createdAt || 0);
+      const readyEnough = !!realVm && realVm.status === "running";
 
       if (msg.includes("Create task nenalezen") || msg.includes("404")) {
-        if (existsInList || existsByVmid || ageMs > 5 * 60 * 1000) {
+        if (readyEnough || ageMs > 5 * 60 * 1000) {
           continue;
         }
       }
@@ -458,7 +524,7 @@ async function syncPendingCreateStatuses(vms) {
     }
   }
 
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
+  savePendingCreates(next);
 }
 
 function renderQuotaBox() {
@@ -467,16 +533,16 @@ function renderQuotaBox() {
 
   const role = getRole();
   if (role === "admin") {
-    box.innerHTML = `<div class="small fw-semibold">Admin: bez limitu</div>`;
+    box.innerHTML = `<div class="text-muted">Admin: bez limitu</div>`;
     return;
   }
+
   if (!quotaCache) {
-    box.innerHTML = `<div class="small text-muted">Načítám…</div>`;
+    box.innerHTML = `<div class="text-muted">Načítám…</div>`;
     return;
   }
 
   const pending = pendingUsage();
-
   const usedVms = quotaCache.vms + pending.vms;
   const usedCores = quotaCache.cores + pending.cores;
   const usedRamBytes = quotaCache.ramBytes + pending.ramBytes;
@@ -484,11 +550,6 @@ function renderQuotaBox() {
 
   const usedRamGB = Number(fmtGB(usedRamBytes));
   const usedDiskGB = Number(fmtGB(usedDiskBytes));
-
-  const rVms = clamp01(usedVms / QUOTA.maxVms);
-  const rCpu = clamp01(usedCores / QUOTA.maxCores);
-  const rRam = clamp01(usedRamBytes / QUOTA.maxRamBytes);
-  const rDisk = clamp01(usedDiskBytes / QUOTA.maxDiskBytes);
 
   const selCores = Number(document.getElementById("cores")?.value || 0);
   const selMemMiB = Number(document.getElementById("memory")?.value || 0);
@@ -504,35 +565,45 @@ function renderQuotaBox() {
   const afterRamBytes = usedRamBytes + (Number.isFinite(selRamBytes) ? selRamBytes : 0);
   const afterDiskBytes = usedDiskBytes + selDiskBytes;
 
+  const rCpu = clamp01(usedCores / QUOTA.maxCores);
+  const rRam = clamp01(usedRamBytes / QUOTA.maxRamBytes);
+  const rDisk = clamp01(usedDiskBytes / QUOTA.maxDiskBytes);
+
   const rCpuAfter = clamp01(afterCores / QUOTA.maxCores);
   const rRamAfter = clamp01(afterRamBytes / QUOTA.maxRamBytes);
   const rDiskAfter = clamp01(afterDiskBytes / QUOTA.maxDiskBytes);
 
   box.innerHTML = `
-    <div class="small fw-semibold d-flex justify-content-between"><span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rCpu)}" style="width:${(rCpu * 100).toFixed(0)}%"></div></div>
-    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${afterCores}/${QUOTA.maxCores}</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rCpuAfter)}" style="width:${(rCpuAfter * 100).toFixed(0)}%"></div></div>
+    <div class="small mb-2">Do limitů se započítávají i VM, které se právě vytvářejí.</div>
 
-    <div class="small fw-semibold d-flex justify-content-between"><span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rRam)}" style="width:${(rRam * 100).toFixed(0)}%"></div></div>
-    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rRamAfter)}" style="width:${(rRamAfter * 100).toFixed(0)}%"></div></div>
+    <div class="mb-2">
+      <div class="d-flex justify-content-between small"><span>CPU</span><span>${usedCores}/${QUOTA.maxCores}</span></div>
+      <div class="progress" style="height:8px;"><div class="progress-bar ${barClass(rCpu)}" style="width:${rCpu * 100}%"></div></div>
+      <div class="small text-muted mt-1">Po vytvoření: ${afterCores}/${QUOTA.maxCores}</div>
+      <div class="progress mt-1" style="height:8px;"><div class="progress-bar ${barClass(rCpuAfter)}" style="width:${rCpuAfter * 100}%"></div></div>
+    </div>
 
-    <div class="small fw-semibold d-flex justify-content-between"><span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span></div>
-    <div class="progress mb-2" style="height:10px;"><div class="progress-bar ${barClass(rDisk)}" style="width:${(rDisk * 100).toFixed(0)}%"></div></div>
-    <div class="small text-muted d-flex justify-content-between mb-2"><span>Po vytvoření</span><span>${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</span></div>
-    <div class="progress mb-3" style="height:8px;"><div class="progress-bar ${barClass(rDiskAfter)}" style="width:${(rDiskAfter * 100).toFixed(0)}%"></div></div>
+    <div class="mb-2">
+      <div class="d-flex justify-content-between small"><span>RAM</span><span>${usedRamGB.toFixed(1)}/20.0 GB</span></div>
+      <div class="progress" style="height:8px;"><div class="progress-bar ${barClass(rRam)}" style="width:${rRam * 100}%"></div></div>
+      <div class="small text-muted mt-1">Po vytvoření: ${Number(fmtGB(afterRamBytes)).toFixed(1)}/20.0 GB</div>
+      <div class="progress mt-1" style="height:8px;"><div class="progress-bar ${barClass(rRamAfter)}" style="width:${rRamAfter * 100}%"></div></div>
+    </div>
 
-    <div class="small fw-semibold d-flex justify-content-between"><span>Počet VM</span><span>${usedVms}/${QUOTA.maxVms}</span></div>
-    <div class="progress" style="height:10px;"><div class="progress-bar ${barClass(rVms)}" style="width:${(rVms * 100).toFixed(0)}%"></div></div>
+    <div class="mb-2">
+      <div class="d-flex justify-content-between small"><span>Disk</span><span>${usedDiskGB.toFixed(1)}/250.0 GB</span></div>
+      <div class="progress" style="height:8px;"><div class="progress-bar ${barClass(rDisk)}" style="width:${rDisk * 100}%"></div></div>
+      <div class="small text-muted mt-1">Po vytvoření: ${Number(fmtGB(afterDiskBytes)).toFixed(1)}/250.0 GB</div>
+      <div class="progress mt-1" style="height:8px;"><div class="progress-bar ${barClass(rDiskAfter)}" style="width:${rDiskAfter * 100}%"></div></div>
+    </div>
+
+    <div class="small text-muted">Počet VM: ${usedVms}/${QUOTA.maxVms}</div>
   `;
 }
 
 async function refreshQuotaFromList() {
   const box = document.getElementById("quotaBox");
   if (!box) return;
-
   try {
     const data = await apiGet("/api/vm/list");
     const vms = data?.vms || [];
@@ -619,8 +690,8 @@ function applyTemplatePreset() {
 
 function vmIpText(vm) {
   const ip = vm.ip || vm.ipAddress || vm.primaryIp || null;
-  if (ip) return ` | ${ip}`;
-  return vm.status === "running" ? " | adresa není dostupná" : "";
+  if (ip) return ` | IP: ${ip}`;
+  return vm.status === "running" ? " | IP není zatím dostupná" : "";
 }
 
 function makeVmRow(vm, role) {
@@ -638,14 +709,19 @@ function makeVmRow(vm, role) {
 
   const pending = getPending(vm.vmid);
   let displayStatus = vm.status;
+
   if (vm.pendingCreate) {
-  displayStatus = phaseLabel(vm.pendingCreatePhase);
-  if (vm.pendingCreateError) {
-    displayStatus += `: ${vm.pendingCreateError}`;
+    displayStatus = phaseLabel(vm.pendingCreatePhase);
+    if (vm.pendingCreateError) {
+      displayStatus += `: ${vm.pendingCreateError}`;
+    }
+  } else if (pending === "starting") {
+    displayStatus = "starting";
+  } else if (pending === "stopping") {
+    displayStatus = "stopping";
+  } else if (pending === "deleting") {
+    displayStatus = "deleting";
   }
-}
-  else if (pending === "starting") displayStatus = "starting";
-  else if (pending === "stopping") displayStatus = "stopping";
 
   dotEl.dataset.state = vm.pendingCreate ? "pending" : (pending ? "pending" : (vm.status || ""));
   title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | ${displayStatus}${vmIpText(vm)}`;
@@ -667,7 +743,10 @@ function makeVmRow(vm, role) {
   const btnConsole = document.createElement("button");
   btnConsole.textContent = "Konzole";
   btnConsole.className = "btn btn-sm btn-outline-primary";
-  btnConsole.onclick = () => window.open(vm.consoleUrl, "_blank");
+  btnConsole.disabled = !vm.consoleUrl;
+  btnConsole.onclick = () => {
+    if (vm.consoleUrl) window.open(vm.consoleUrl, "_blank");
+  };
 
   const btnStart = document.createElement("button");
   btnStart.textContent = "Start";
@@ -677,11 +756,9 @@ function makeVmRow(vm, role) {
       markPending(vm.vmid, "starting", 6000);
       dotEl.dataset.state = "pending";
       title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | starting${vmIpText(vm)}`;
-
       setStatus("Spouštím…", "success", 3000);
-      scheduleRefresh();
-
       await apiPost(`/api/vm/${vm.vmid}/start`, {});
+      scheduleRefresh(1500);
     } catch (e) {
       setStatus(String(e.message || e), "error", 6000);
       scheduleRefresh(0);
@@ -694,15 +771,12 @@ function makeVmRow(vm, role) {
   btnStop.onclick = async () => {
     try {
       if (confirmDangerousActionsEnabled() && !confirm(`Opravdu vypnout VM ${shownId(vm.vmid, role)}?`)) return;
-
       markPending(vm.vmid, "stopping", 6000);
       dotEl.dataset.state = "pending";
       title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping${vmIpText(vm)}`;
-
       setStatus("Vypínám…", "success", 3000);
-      scheduleRefresh();
-
       await apiPost(`/api/vm/${vm.vmid}/stop`, {});
+      scheduleRefresh(1500);
     } catch (e) {
       setStatus(String(e.message || e), "error", 6000);
       scheduleRefresh(0);
@@ -716,14 +790,10 @@ function makeVmRow(vm, role) {
     try {
       if (vm.status === "running") {
         if (confirmDangerousActionsEnabled() && !confirm("VM běží. Nejdřív ji vypnout a pak smazat?")) return;
-
         markPending(vm.vmid, "stopping", 6000);
         dotEl.dataset.state = "pending";
         title.textContent = `VM ${shownId(vm.vmid, role)} | ${vm.name} | stopping${vmIpText(vm)}`;
-
         setStatus("Vypínám…", "success", 3000);
-        scheduleRefresh();
-
         await apiPost(`/api/vm/${vm.vmid}/stop`, {});
         await new Promise((r) => setTimeout(r, 800));
       }
@@ -733,20 +803,7 @@ function makeVmRow(vm, role) {
       markPending(vm.vmid, "deleting", 15000);
       row.remove();
       setStatus("Mažu…", "success", 3000);
-      scheduleRefresh();
-
-      const r = await fetch(`${API_BASE}/api/vm/${vm.vmid}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (r.status === 401) {
-        localStorage.clear();
-        window.location.href = "index.html";
-        return;
-      }
-      const d = await parseResponse(r);
-      if (!r.ok) throw new Error(d?.error || String(d));
-
+      await apiDelete(`/api/vm/${vm.vmid}`);
       setStatus("Smazáno.", "success", 3000);
       scheduleRefresh(0);
     } catch (e) {
@@ -799,24 +856,28 @@ function initDashboardFilters() {
 function materializePendingCreates(vms) {
   const now = Date.now();
   const allPending = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
-  const names = new Set(vms.map((v) => `${v.pool || ""}::${v.name}`));
 
   const cleaned = allPending.filter((p) => {
     const ageMs = now - Number(p.createdAt || 0);
-    const key = `${p.pool || ""}::${p.name}`;
-  if (names.has(key) && ageMs > 5 * 60 * 1000) return false;
     if (ageMs > 30 * 60 * 1000) return false;
+
+    const vm = (vms || []).find((v) => {
+      const vKey = `${v.pool || ""}::${normalizeVmName(v.name)}`;
+      const pKey = `${p.pool || ""}::${normalizeVmName(p.name)}`;
+      return vKey === pKey || Number(v.vmid) === Number(p.vmid ?? p.requestedVmid);
+    });
+
+    if (vm) return false;
     return true;
   });
 
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(cleaned));
+  savePendingCreates(cleaned);
 
   const role = getRole();
   const pool = getPool();
-  const username = localStorage.getItem("username") || "";
+  const username = getUsername();
 
   if (role === "admin") return cleaned;
-
   return cleaned.filter((x) => {
     const samePool = String(x.pool || "") === String(pool || "");
     const sameUser = String(x.username || "") === String(username || "");
@@ -830,8 +891,8 @@ function fakeVmFromPending(p) {
     name: p.name,
     status: "creating",
     pendingCreate: true,
-     pendingCreatePhase: p.phase || "queued",
-pendingCreateError: p.error || null,
+    pendingCreatePhase: p.phase || "queued",
+    pendingCreateError: p.error || null,
     maxcpu: Number(p.cores) || 0,
     maxmem: (Number(p.memory) || 0) * 1024 * 1024,
     maxdisk: (Number(p.diskGb) || 0) * 1024 * 1024 * 1024,
@@ -849,16 +910,16 @@ async function refreshVmList() {
 
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
-const pendingCreates = materializePendingCreates(vmsAll);
-quotaCache = calcUsageFromVms(vmsAll);
-const merged = [
-  ...vmsAll.filter((v) => getPending(v.vmid) !== "deleting"),
-  ...pendingCreates.map(fakeVmFromPending),
-];
 
-scheduleRefresh(getAutoRefreshMs());
-syncPendingCreateStatuses(vmsAll).catch(() => {});
+  const pendingCreates = materializePendingCreates(vmsAll);
+  quotaCache = calcUsageFromVms(vmsAll);
 
+  const merged = [
+    ...vmsAll.filter((v) => getPending(v.vmid) !== "deleting"),
+    ...pendingCreates.map(fakeVmFromPending),
+  ];
+
+  syncPendingCreateStatuses(vmsAll).catch(() => {});
   updateStats(merged);
 
   const role = getRole();
@@ -869,6 +930,7 @@ syncPendingCreateStatuses(vmsAll).catch(() => {});
   const vms = applyFilters(merged);
 
   out.innerHTML = "";
+
   if (!vms.length) {
     out.textContent = "Žádné VM pro zvolený filtr.";
     return;
@@ -878,6 +940,7 @@ syncPendingCreateStatuses(vmsAll).catch(() => {});
 
   if (role === "admin" && isDashboard && hasPool) {
     const map = new Map();
+
     for (const vm of vms) {
       const p = vm.pool || "neznamy";
       if (!map.has(p)) map.set(p, []);
@@ -886,25 +949,26 @@ syncPendingCreateStatuses(vmsAll).catch(() => {});
 
     const adminPool = "mojevm";
     const adminVms = map.get(adminPool) || [];
+
     if (adminVms.length) {
       const h = document.createElement("div");
       h.className = "mb-2 fw-semibold";
       h.textContent = "Moje VM (admin)";
       out.appendChild(h);
+
       for (const vm of adminVms) out.appendChild(makeVmRow(vm, role));
     }
 
     const pools = [...map.keys()].filter((p) => p !== adminPool).sort();
+
     for (const p of pools) {
       const group = map.get(p) || [];
-
       const details = document.createElement("details");
       details.className = "vm-bubble";
       details.dataset.pool = p;
 
       const summary = document.createElement("summary");
       summary.textContent = `${p} (${group.length})`;
-
       summary.addEventListener("click", () => {
         pushHistory();
         uiState.poolFilter = (uiState.poolFilter === p) ? null : p;
@@ -916,6 +980,7 @@ syncPendingCreateStatuses(vmsAll).catch(() => {});
 
       const content = document.createElement("div");
       content.className = "vm-bubble-content";
+
       for (const vm of group) content.appendChild(makeVmRow(vm, role));
 
       details.appendChild(summary);
@@ -934,39 +999,90 @@ async function testBackend() {
   try {
     setStatus("Testuji backend…", "info", 3000);
     const res = await apiGet("/api/test");
-    setStatus(res?.ok ? "Backend odpověděl správně." : "Backend vrátil neočekávanou odpověď.", res?.ok ? "success" : "error", 4000);
+    const ok = res?.ok || res?.status === "OK";
+    setStatus(ok ? "Backend odpověděl správně." : "Backend vrátil neočekávanou odpověď.", ok ? "success" : "error", 4000);
   } catch (e) {
     setStatus(String(e.message || e), "error", 6000);
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const page = document.body?.dataset?.page || "";
-  const isCreate = page === "create";
+function initHeader() {
+  const username = getUsername() || "—";
+  const role = getRole() || "—";
+  const pool = getPool() || "—";
 
-  initDashboardFilters();
+  const navUser = document.getElementById("navUser");
+  const navRole = document.getElementById("navRole");
+  const navPool = document.getElementById("navPool");
+
+  if (navUser) navUser.textContent = username;
+  if (navRole) navRole.textContent = role;
+  if (navPool) navPool.textContent = pool;
+
+  const auditNav = document.getElementById("auditNav");
+  if (auditNav && role !== "admin") {
+    auditNav.style.display = "none";
+  }
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "index.html";
+    });
+  }
+}
+
+function initSettingsPage() {
+  const accountUsername = document.getElementById("accountUsername");
+  const accountRole = document.getElementById("accountRole");
+  const accountPool = document.getElementById("accountPool");
+
+  if (accountUsername) accountUsername.textContent = getUsername() || "—";
+  if (accountRole) accountRole.textContent = getRole() || "—";
+  if (accountPool) accountPool.textContent = getPool() || "—";
 
   const autoRefreshEl = document.getElementById("autoRefreshInterval");
   const confirmDangerousEl = document.getElementById("confirmDangerousActions");
+  const btnClearLocalData = document.getElementById("btnClearLocalData");
 
-  if (autoRefreshEl || confirmDangerousEl) {
-    const prefs = loadUiPrefs();
+  const prefs = loadUiPrefs();
 
-    if (autoRefreshEl) {
-      autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
-      autoRefreshEl.addEventListener("change", () => {
-        saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
-        startAutoPoll();
-      });
-    }
-
-    if (confirmDangerousEl) {
-      confirmDangerousEl.checked = !!prefs.confirmDangerousActions;
-      confirmDangerousEl.addEventListener("change", () => {
-        saveUiPrefs({ confirmDangerousActions: confirmDangerousEl.checked });
-      });
-    }
+  if (autoRefreshEl) {
+    autoRefreshEl.value = String(prefs.autoRefreshInterval || "5000");
+    autoRefreshEl.addEventListener("change", () => {
+      saveUiPrefs({ autoRefreshInterval: autoRefreshEl.value });
+      startAutoPoll();
+      setStatus("Nastavení automatické obnovy bylo uloženo.", "success", 3000);
+    });
   }
+
+  if (confirmDangerousEl) {
+    confirmDangerousEl.checked = !!prefs.confirmDangerousActions;
+    confirmDangerousEl.addEventListener("change", () => {
+      saveUiPrefs({ confirmDangerousActions: confirmDangerousEl.checked });
+      setStatus("Nastavení potvrzování akcí bylo uloženo.", "success", 3000);
+    });
+  }
+
+  if (btnClearLocalData) {
+    btnClearLocalData.addEventListener("click", () => {
+      if (!confirm("Opravdu odstranit lokální data a odhlásit se?")) return;
+      localStorage.clear();
+      window.location.href = "index.html";
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!requireAuth()) return;
+
+  const page = document.body?.dataset?.page || "";
+  const isCreate = page === "create";
+
+  initHeader();
+  initDashboardFilters();
+  initSettingsPage();
 
   const backBtn = document.getElementById("filterBack");
   if (backBtn) {
@@ -983,7 +1099,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const out = document.getElementById("out");
   if (!isCreate && out) {
     const btnRefresh = document.getElementById("refreshBtn");
-    if (btnRefresh) btnRefresh.addEventListener("click", () => refreshVmList().catch(() => {}));
+    if (btnRefresh) {
+      btnRefresh.addEventListener("click", () => refreshVmList().catch(() => {}));
+    }
     refreshVmList().catch((e) => setStatus(String(e.message || e), "error", 6000));
     startAutoPoll();
   }
@@ -1013,6 +1131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const coresEl = document.getElementById("cores");
     const memEl = document.getElementById("memory");
     const diskEl = document.getElementById("diskGb");
+
     if (coresEl) coresEl.addEventListener("input", renderQuotaBox);
     if (memEl) memEl.addEventListener("input", renderQuotaBox);
     if (diskEl) diskEl.addEventListener("input", renderQuotaBox);
@@ -1030,42 +1149,39 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = (document.getElementById("name")?.value || "").trim();
         const template = (document.getElementById("template")?.value || "ubuntu").trim();
         const meta = TEMPLATE_META[template];
-
         const cores = Number(document.getElementById("cores")?.value || 2);
         const memory = Number(document.getElementById("memory")?.value || 2048);
-
         const slotRaw = (document.getElementById("slot")?.value || "").trim();
         const slot = slotRaw === "" ? null : Number(slotRaw);
-
         const diskGbRaw = (document.getElementById("diskGb")?.value || "").trim();
         const diskGb = diskGbRaw === "" ? null : Number(diskGbRaw);
-
         const vmUser = (document.getElementById("vmUser")?.value || "").trim();
         const vmPass = (document.getElementById("vmPass")?.value || "").trim();
-
         const role = getRole();
         const requestedVmid = role === "admin" ? slot : null;
+        const effectivePool = getPool() || (role === "admin" ? "mojevm" : "");
+        const normalizedName = normalizeVmName(name);
 
         if (!meta) {
           setStatus("Neplatná šablona.", "error", 6000);
           return;
         }
-
         if (!name) {
           setStatus("Chybí název VM.", "error", 6000);
           return;
         }
-
+        if (pendingNameConflict(name, effectivePool)) {
+          setStatus(`VM s názvem "${name}" se už vytváří.`, "error", 6000);
+          return;
+        }
         if (!Number.isInteger(cores) || cores < meta.minCpu || cores > QUOTA.maxCores) {
           setStatus(`CPU musí být celé ${meta.minCpu}–${QUOTA.maxCores}.`, "error", 6000);
           return;
         }
-
         if (!Number.isInteger(memory) || memory < meta.minRam || memory > 20480) {
           setStatus(`RAM musí být ${meta.minRam}–20480 MB.`, "error", 6000);
           return;
         }
-
         if (role === "admin") {
           if (requestedVmid !== null && (!Number.isInteger(requestedVmid) || requestedVmid < 100 || requestedVmid > 999999)) {
             setStatus("Admin může zadat celé VMID od 100 výš.", "error", 6000);
@@ -1077,27 +1193,22 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
         }
-
         if (diskGb !== null && (!Number.isInteger(diskGb) || diskGb < meta.minDisk || diskGb > 250)) {
           setStatus(`Disk musí být ${meta.minDisk}–250 GB.`, "error", 6000);
           return;
         }
-
         if (!vmPass) {
           setStatus("Chybí heslo.", "error", 6000);
           return;
         }
-
         if (vmPass.length < 4) {
           setStatus("Heslo je příliš krátké.", "error", 6000);
           return;
         }
-
         if (meta.linux && !vmUser) {
           setStatus("Chybí uživatel.", "error", 6000);
           return;
         }
-
         if (requestedVmid && pendingVmidConflict(requestedVmid)) {
           setStatus(`VMID ${requestedVmid} je už rezervováno jiným právě vytvářeným strojem v tomto prohlížeči.`, "error", 6000);
           return;
@@ -1136,25 +1247,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         requestKey = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        const pendingName = String(name || "").trim().toLowerCase();
-addPendingCreate({
-  requestKey,
-  createdAt: Date.now(),
-  name: pendingName,
-  template,
-  pool: getPool(),
-  username: localStorage.getItem("username") || "",
-  requestedVmid,
-  displaySlot: slot,
-  cores,
-  memory,
-  diskGb: diskGb || meta.defaultDisk,
-  phase: "queued",
-  status: "running",
-});
+
+        addPendingCreate({
+          requestKey,
+          createdAt: Date.now(),
+          name: normalizedName,
+          template,
+          pool: effectivePool,
+          username: getUsername(),
+          requestedVmid,
+          displaySlot: slot,
+          cores,
+          memory,
+          diskGb: diskGb || meta.defaultDisk,
+          phase: "queued",
+          status: "running",
+        });
 
         renderQuotaBox();
-        if (document.getElementById("out")) refreshVmList().catch(() => {});
 
         const payload = {
           name,
@@ -1167,57 +1277,42 @@ addPendingCreate({
           requestKey,
         };
 
-        if (role === "admin") {
-          payload.vmid = requestedVmid;
-        } else {
-          payload.slot = slot;
+        if (role === "admin") payload.vmid = requestedVmid;
+        else payload.slot = slot;
+
+        let createRes;
+        try {
+          createRes = await apiPost("/api/vm/create", payload);
+        } catch (e) {
+          const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+          const next = raw.map((x) => x.requestKey === requestKey ? {
+            ...x,
+            phase: "error",
+            status: "error",
+            error: String(e.message || e),
+          } : x);
+          savePendingCreates(next);
+          throw e;
         }
 
-       let createRes;
-
-try {
-  createRes = await apiPost("/api/vm/create", payload);
-} catch (e) {
-  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
-  const next = raw.map((x) =>
-    x.requestKey === requestKey
-      ? {
-          ...x,
-          phase: "error",
-          status: "error",
-          error: String(e.message || e),
+        const acceptedRequestKey = createRes?.requestKey || requestKey;
+        {
+          const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+          const next = raw.map((x) => x.requestKey === requestKey ? {
+            ...x,
+            requestKey: acceptedRequestKey,
+            phase: "queued",
+            status: "running",
+            error: null,
+          } : x);
+          savePendingCreates(next);
         }
-      : x
-  );
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
-  throw e;
-}
 
-const acceptedRequestKey = createRes?.requestKey || requestKey;
-
-{
-  const raw = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
-  const next = raw.map((x) =>
-    x.requestKey === requestKey
-      ? {
-          ...x,
-          requestKey: acceptedRequestKey,
-          phase: "queued",
-          status: "running",
-          error: null,
-        }
-      : x
-  );
-  localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(next));
-}
-
-setStatus("Požadavek byl přijat. Přesměrovávám…", "success", 1200);
-
-setTimeout(() => {
-  window.location.href = "myvm.html";
-}, 250);
-
-return;
+        setStatus("Požadavek byl přijat. Přesměrovávám…", "success", 1200);
+        setTimeout(() => {
+          window.location.href = "myvm.html";
+        }, 250);
+        return;
       } catch (e) {
         if (requestKey) removePendingCreateByKey(requestKey);
         renderQuotaBox();
