@@ -60,7 +60,7 @@
               <div class="mb-3">
                 <label class="form-label" for="name">
                   Název VM
-                  <span class="vm-info" data-tip="Pravidla: 3–32 znaků, jen a–z, 0–9 a pomlčka. Bez mezer. Musí být unikátní.">i</span>
+                  <span class="ms-1 text-muted" style="cursor:help;" title="Zadej jedinečný název virtuálního stroje. Doporučeno je používat kratší název bez mezer a bez speciálních znaků. Stejný název nelze použít ani u VM, která se právě vytváří.">i</span>
                 </label>
                 <input class="form-control" id="name" placeholder="demo-ubuntu-01" />
               </div>
@@ -81,7 +81,6 @@
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="cores">
                     CPU (Počet jader)
-                    <span class="vm-info" data-tip="Skutečné maximum určuje zůstatek prostředků uživatele.">i</span>
                   </label>
                   <input class="form-control" id="cores" type="number" min="1" max="8" step="1" inputmode="numeric" value="2" />
                 </div>
@@ -89,7 +88,6 @@
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="memory">
                     RAM (MB)
-                    <span class="vm-info" data-tip="Skutečné maximum určuje zůstatek prostředků uživatele.">i</span>
                   </label>
                   <input class="form-control" id="memory"
                          type="number" min="256" max="20480" step="256" inputmode="numeric"
@@ -109,7 +107,6 @@
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="diskGb">
                     Disk (GB)
-                    <span class="vm-info" data-tip="Skutečné maximum určuje zůstatek prostředků uživatele.">i</span>
                   </label>
                   <input class="form-control" id="diskGb" type="number" min="5" max="250" step="1" inputmode="numeric" value="20" />
                 </div>
