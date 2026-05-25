@@ -867,7 +867,9 @@ function materializePendingCreates(vms) {
       return vKey === pKey || Number(v.vmid) === Number(p.vmid ?? p.requestedVmid);
     });
 
-    if (vm) return false;
+        if (vm) {
+      return ageMs < 4000;
+    }
     return true;
   });
 
