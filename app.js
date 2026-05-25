@@ -908,6 +908,15 @@ async function refreshVmList() {
 
   captureOpenBubbles();
 
+  const role = getRole();
+  const page = document.body?.dataset?.page || "";
+  const immediatePending = loadPendingCreates().map(fakeVmFromPending);
+
+  if (page !== "create" && immediatePending.length) {
+    out.innerHTML = "";
+    for (const vm of immediatePending) out.appendChild(makeVmRow(vm, role));
+  }
+  
   const data = await apiGet("/api/vm/list");
   const vmsAll = data?.vms || [];
 
@@ -922,9 +931,7 @@ async function refreshVmList() {
   syncPendingCreateStatuses(vmsAll).catch(() => {});
   updateStats(merged);
 
-  const role = getRole();
-  const page = document.body?.dataset?.page || "";
-  if (page === "create") return;
+    if (page === "create") return;
 
   const isDashboard = page === "dashboard";
   const vms = applyFilters(merged);
